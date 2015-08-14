@@ -1,0 +1,220 @@
+<?php
+
+/**
+ * Set's up login functionality using the Reddit Oauth system.
+ *
+ * Can create user accounts, sync to existing ones and has a nifty admin
+ * interface.
+ */
+
+define('REDDIT_LOGIN_BLOCK_DEFAULT_TEXT', '
+            <a class="button" href="reddit/login">Login with Reddit</a>
+            <p style="color:gray;">Use this to login with your reddit account in the same manner as the last site.</p>');
+
+// We could set these as admin configurable..
+define('REDDIT_LOGIN_authorizeUrl', 'https://ssl.reddit.com/api/v1/authorize');
+define('REDDIT_LOGIN_accessTokenUrl', 'https://ssl.reddit.com/api/v1/access_token');
+define('REDDIT_LOGIN_userUrl', 'https://oauth.reddit.com/api/v1/me');
+
+/**
+ * Implements hook_block_info()
+ *
+ * Define's a simple login block that allows users to login using Reddit by
+ * pushing a button.
+ */
+function reddit_login_block_info() {
+  $blocks['reddit_login_login_form'] = array(
+    'info' => t("Login Block"), 
+    'cache' => DRUPAL_CACHE_GLOBAL
+  );
+  return $blocks;
+}
+
+function reddit_login_block_view($delta = '') {
+  $block = array();
+  switch ($delta) {
+    case 'reddit_login_login_form':
+      {
+        $block[content] = variable_get('reddit_login_block_text', REDDIT_LOGIN_BLOCK_DEFAULT_TEXT);
+      }
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Implements hook_menu()
+ */
+function hook_menu() {
+  $items['reddit/login'] = array(
+    'type' => MENU_CALLBACK, 
+    'access callback' => TRUE, 
+    'page callback' => 'reddit_login_login_callback', 
+    'description' => 'Provides the callback for the login block.'
+  );
+  $items['admin/reddit_login'] = array(
+    'title' => 'Reddit Login Settings', 
+    'description' => 'Configure RedditLogin', 
+    'position' => 'left', 
+    'page callback' => 'system_admin_menu_block_page', 
+    'access arguments' => array(
+      'reddit login admin'
+    ), 
+    'file' => 'system.admin.inc', 
+    'file path' => drupal_get_path('module', 'system')
+  );
+  $items['admin/reddit_login/login'] = array(
+    'title' => 'Login Config', 
+    'description' => 'Modify the variables required to use reddit to login.', 
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array(
+      'reddit_login_login_config_form'
+    ), 
+    'access arguments' => array(
+      'reddit login admin'
+    )
+  );
+  $items['admin/reddit_login/block'] = array(
+    'title' => 'Block Config', 
+    'description' => 'Modify the block', 
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array(
+      'reddit_login_block_config_form'
+    ), 
+    'access arguments' => array(
+      'reddit login admin'
+    )
+  );
+  
+  return $items;
+}
+
+/**
+ * Implements hook_libraries_info().
+ *
+ * For defining external libraries.
+ */
+
+function reddit_login_libraries_info() {
+  $libraries['reddit'] = array(
+    'name' => 'Reddit API', 
+    'vendor url' => 'http://github.com/clonemeagain/redditapi', 
+    'download url' => 'http://github.com/clonemeagain/redditapi/reddit.php', 
+    'version arguments' => array(
+      'file' => 'reddit.php', 
+      'pattern' => '/Version (\d+)/', 
+      'lines' => 1
+    ), 
+    'files' => array(
+      'php' => array(
+        'reddit.php'
+      )
+    )
+  );
+  return $libraries;
+
+}
+
+/**
+ * Implements hook_permission
+ *
+ * @return multitype:multitype:The
+ */
+function reddit_login_permission() {
+  return array(
+    'reddit login admin' => array(
+      'title' => t('Administer Reddit Login'), 
+      'description' => t('Administer reddit login.')
+    ), 
+    'reddit login login' => array(
+      'title' => t('Login with Reddit'), 
+      'description' => t('Allowed to login using Reddit')
+    )
+  );
+}
+
+/**
+ * Create the admin interface to configure the Block
+ *
+ * @param array $form        
+ * @param array $form_state        
+ */
+function reddit_login_block_config_form($form, &$form_state) {
+  $form['help'] = array(
+    '#type' => 'markup', 
+    '#markup' => '<h2>Login Block Configuration</h2>'
+  );
+  $form['title'] = array(
+    '#type' => 'text', 
+    '#title' => 'Set block Title', 
+    '#value' => variable_get('reddit_login_block_title', 'Login with Reddit')
+  );
+  $form['text'] = array(
+    '#type' => 'textarea', 
+    '#title' => 'Set block HTML', 
+    '#value' => variable_get('reddit_login_block_text', REDDIT_LOGIN_BLOCK_DEFAULT_TEXT)
+  );
+  return $form;
+}
+
+function reddit_login_block_config_form_validate($form, &$form_state) {
+  // See if we have valid data..
+  $doc = new DOMDocument();
+  $doc->loadhtml($form_state['values']['text']);
+  $xpath = new DOMXPath($doc);
+  $hrefs = $xpath->evaluate("/a");
+  if ($hrefs->length == 0) {
+    form_set_error('text', 'Please enter valid HTML, including a link to "reddit/login".');
+  }
+}
+
+function reddit_login_block_config_form_submit($form, &$form_state) {
+  $msg = '';
+  // Save the data.
+  if (isset($form_state['title']) && $form_state['title']) {
+    $t = $form_state['title'];
+    variable_set('reddit_login_block_title', $t);
+    $msg = 'Set the block title to: ' . $t;
+  }
+  if (isset($form_state['text']) && $form_state['text']) {
+    $text = $form_state['text'];
+    variable_set('reddit_login_block_text', $text);
+    $msg .= "\nSet the block html to: " . htmlentities($text) . "\n";
+  }
+  if ($msg) {
+    drupal_set_message($msg);
+  }
+}
+
+/**
+ * Provide site admins with form to add API keys and set redirection URL's etc.
+ *
+ * @param array $form        
+ * @param array $form_state        
+ */
+function reddit_login_login_config_form($form, &$form_state) {
+
+}
+
+/**
+ * Actually process a login.
+ */
+function reddit_login_login_callback() {
+  drupal_page_is_cacheable(FALSE);
+  // We don't assume that any other reddit module is available, however, should
+  // the "reddit_integration" module be available, we'll use it's vars.
+  
+  $clientId = variable_get('reddit_login_client_id', '');
+  $clientSecret = variable_get('reddit_login_client_secret', '');
+  $redirectUrl = variable_get('reddit_login_redirect_url', '');
+  if (!$clientSecret || !$clientId || !$redirectUrl) {
+    drupal_set_message('Unable to login, module reddit_login is misconfigured: ' . l('Please correct this ASAP!', 'admin/redit_login/login'), 'error');
+    drupal_redirect();
+  }
+  global $base_url;
+  $USER_AGENT = array(
+    'User-Agent' => $base_url . ' Drupal/RedditLogin UserAgent v1'
+  );
+  
+  // TODO: Actually login!
+}

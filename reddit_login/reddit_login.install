@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * Implements hook_requiements
+ * Ensures that the Reddit API library is installed.
+ *
+ * @param string $phase        
+ * @return array
+ */
+function reddit_login_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'runtime' || $phase == 'install') {
+    $name = 'reddit';
+    if (($library = libraries_detect($name)) && !empty($library['installed'])) {
+      // The library is installed. Awesome!
+    }
+    else {
+      // Something went wrong. :(
+      $error = $library['error'];
+      watchdog('reddit_login', $library['error'] . ' ' . $library['error message'], WATCHDOG_CRITICAL);
+      $requirements(array(
+        'title' => $library['error'], 
+        'value' => 1, 
+        'description' => 'The reddit API is required for the reddit_login module.' . $library['error message'], 
+        'severity' => REQUIREMENT_ERROR
+      ));
+    }
+  
+  }
+  return $requirements;
+}

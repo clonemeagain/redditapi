@@ -1,0 +1,4 @@
+name = Reddit Login
+description = Provides Oauth Login using the Reddit API
+package = Reddit
+core = 7.x
