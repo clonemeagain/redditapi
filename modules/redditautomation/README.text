@@ -1,0 +1,65 @@
+-- SUMMARY --
+
+The Reddit Automation Module provides Reddit API functions to Drupal, exposed
+as functions, the functions themselves are also exposed as Rule Actions, so you 
+can write Rule's to operate the API functions. 
+
+For a full description of the module, visit the project page:
+  http://drupal.org/project/redditautomation
+
+To submit bug reports and feature suggestions, or to track changes:
+  http://drupal.org/project/issues/redditautomation
+
+
+-- REQUIREMENTS --
+
+* Ensure you have the Libraries and Rules modules installed to get the most out of this.
+* Ensure your server has the php-curl extension enabled.
+
+-- INSTALLATION --
+
+* Install as usual, see http://drupal.org/node/895232 for further information.
+
+* Ensure the following library is installed: redditapi (module), and download this file:
+https://github.com/clonemeagain/redditapi/blob/master/libraries/redditapi/reddit.php
+saved as sites/all/libraries/redditapi/reddit.php
+
+
+-- CONFIGURATION --
+
+* Configure user permissions in Administration » Settings » Permissions:
+
+  - Can Send PM's
+
+    Access to sending Reddit Private Messages, as the Site. (Should be restricted)
+
+  - Can Make Post's
+
+    Access to making Reddit Link or Text post's to a subreddit. (Should be restricted)
+
+* Customize the username & password settings in Administration » Configuration » Web Services » Reddit Automation.
+
+
+-- CUSTOMIZATION --
+
+* To override the default settings, which is required, you need to configure this 
+module. Use the admin/settings/redditautomation page.
+
+
+-- FAQ --
+
+Q: I get errors
+A: Fill in all the admin sections!
+
+
+-- CONTACT --
+
+Current maintainers:
+* Aaron Were (_grizly) - http://drupal.org/user/431710
+
+
+This project has been sponsored by:
+* Game of Bands
+  Providing a platform for Musical Competition via the Internet, migrating to a 
+  Drupal platform, certain modules required creation, this is one of them.
+  Visit: http://gameofbands.com or http://reddit.com/r/gameofbands for more info.
