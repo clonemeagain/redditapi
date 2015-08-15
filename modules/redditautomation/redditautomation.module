@@ -4,69 +4,27 @@
  */
 
 /**
- * Send a Reddit Message from the configured account to the $username.
- *
- * @param string $username
- * @param string $subject
- * @param string $message
+ * Implements hook_menu()
+ * @return array of menu items
  */
-function redditautomation_send_message($username, $subject, $message) {
-	_redditautomation_load_api ();
-	$reddit = new reddit ();
-	$reddit_usr = variable_get ( 'redditautomation_username', NULL );
-	$reddit_pass = variable_get ( 'redditautomation_password', NULL );
-	if (! is_null ( $reddit_usr ) && ! is_null ( $reddit_pass )) {
-		$reddit->login ( $reddit_usr, $reddit_pass );
-		$reddit_message = $reddit->sendMessage ( $username, $subject, $message );
-	}
+function redditautomation_menu(){
+	$items = array();
+	// Setup a link on the above page, to configure the html of the block.
+	$items ['admin/settings/redditautomation'] = array (
+			'title' => t ( 'Configure Reddit Automation Tools' ),
+			'description' => t ( 'Setup defaults for the Reddit Automation Tools' ),
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array (
+					'redditautomation_admin_form'
+			),
+			'access arguments' => array (
+					'administer site configuration'
+			)
+	);
+
+	return $items;
 }
 
-/**
- * Completely untried..
- *
- *
- * I'm assuming when you specify to Rules that you want a list<user>, that
- * it will spit out a list of User entities.. but I guess we'll have to try it and find out.
- *
- * @param array $userlist
- * @param string $subject
- * @param string $message
- */
-function redditautomation_send_bulk_message($userlist, $subject, $message) {
-	foreach ( $userlist as $user ) {
-		redditautomation_send_bulk_message ( $user->name, $subject, $message );
-	}
-}
-
-/**
- * Submit Post to Reddit.
- *
- * Action performed by administratively configured user account.
- *
- * @param string $subreddit
- * @param string $title
- * @param string $body
- * @return string either PostID
- * @throws Exception on any error.
- */
-function redditautomation_submit_post($subreddit,$title,$body){
-	return 'Not currently Implemented.';
-}
-
-/**
- * Submit Post to Reddit.
- *
- * Action performed by currently logged in user.
- *
- * @param string $subreddit
- * @param string $title
- * @param string $body
- * @return string either PostID
- * @throws Exception on any error.
- */
-function redditautomation_submit_userpost($subreddit,$title,$body){
-	return 'Not currently Implemented.';
-}
 
 /**
  * Defines the exposed Actions
@@ -137,11 +95,271 @@ function redditautomation_permission() {
 			'redditautomation can send' => array (
 					'title' => t ( 'Can send Reddit PM\'s' ),
 					'description' => t ( 'Granted to members who are able to impersonate the Admin and send PM\'s on the site\'s behalf.' )
+			),
+			'redditautomation can post' => array (
+					'title' => t ( 'Can post links/stories to Reddit' ),
+					'description' => t ( 'Granted to members who are able to impersonate the Admin and post content to reddit on the site\'s behalf.' )
 			)
 	);
 }
+
+/**
+ * Access callback for Rules Actions.
+ * @return boolean
+ */
 function redditautomation_sending_access_callback() {
 	return user_access ( 'redditautomation can send' );
+}
+/**
+ * Access callback for Rules Actions.
+ * @return boolean
+ */
+function redditautomation_posting_access_callback() {
+	return user_access ( 'redditautomation can post' );
+}
+
+
+/**
+ * Send a Reddit Message from the configured account to the $username.
+ *
+ * @param string $username
+ * @param string $subject
+ * @param string $message
+ */
+function redditautomation_send_message($username, $subject, $message) {
+	$reddit = _redditautomation_get_reddit ();
+	$reddit_usr = variable_get ( 'redditautomation_username', NULL );
+	$reddit_pass = variable_get ( 'redditautomation_password', NULL );
+	if (! is_null ( $reddit_usr ) && ! is_null ( $reddit_pass )) {
+		$reddit->login ( $reddit_usr, $reddit_pass );
+		$reddit_message = $reddit->sendMessage ( $username, $subject, $message );
+	}
+}
+
+/**
+ * Completely untried..
+ *
+ *
+ * I'm assuming when you specify to Rules that you want a list<user>, that
+ * it will spit out a list of User entities.. but I guess we'll have to try it and find out.
+ *
+ * @param array $userlist
+ * @param string $subject
+ * @param string $message
+ */
+function redditautomation_send_bulk_message($userlist, $subject, $message) {
+	foreach ( $userlist as $user ) {
+		redditautomation_send_bulk_message ( $user->name, $subject, $message );
+	}
+}
+
+/**
+ * Submit Post to Reddit.
+ *
+ * Action performed by administratively configured user account.
+ *
+ * @param string $subreddit
+ * @param string $title
+ * @param string $body
+ * @return string either PostID
+ * @throws Exception on any error.
+ */
+function redditautomation_submit_post($title, $body, $subreddit = null) {
+	if (is_null ( $subreddit )) {
+		$subreddit = variable_get ( 'redditautomation_default_subreddit', '' );
+		if (! $subreddit) {
+			throw new Exception ( "Unable to submit a post without a subreddit, either set one in the redditautomation admin screen, or pass one to this function." );
+		}
+	}
+	if (! $title || ! $body) {
+		throw new Exception ( "Empty title or body, unable to submit post." );
+	}
+
+	// Test user permissions?
+	if (! user_access ( 'redditautomation can post' )) {
+		// drupal_set_message('Access Denied','error');
+		drupal_goto ();
+	}
+
+	$reddit = _reddit_automation_get_reddit ();
+
+	// Make a request via their API, note the NULL as second parameter, that is for links only.
+	$response = $reddit->createStory ( $title, NULL, $subreddit, $body );
+
+	/* Find our new post and save the ID */
+	sleep ( 2 );
+	$l = $reddit->getListing ( $mainsubreddit, 5 );
+
+	return _redditautomation_search ( $l->data->children, $title );
+}
+
+/**
+ * Submit Post to Reddit.
+ *
+ * Action performed by administratively configured user account.
+ *
+ * @param string $subreddit
+ * @param string $title
+ * @param string $body
+ * @return string either PostID
+ * @throws Exception on any error.
+ */
+function redditautomation_submit_link($title, $link, $subreddit = null) {
+	if (is_null ( $subreddit )) {
+		$subreddit = variable_get ( 'redditautomation_default_subreddit', '' );
+		if (! $subreddit) {
+			throw new Exception ( "Unable to submit a link without a subreddit, either set one in the redditautomation admin screen, or pass one to this function." );
+		}
+	}
+	if (! $title || ! $link) {
+		throw new Exception ( "Empty title or link, unable to submit post." );
+	}
+
+	// Test user permissions?
+	if (! user_access ( 'redditautomation can post' )) {
+		// drupal_set_message('Access Denied','error');
+		drupal_goto ();
+	}
+
+	$reddit = _reddit_automation_get_reddit ();
+
+	// Make a request via their API, note the NULL as last parameter, that is for stories only.
+	$response = $reddit->createStory ( $title, $link, $subreddit, NULL );
+
+	/* Find our new post and save the ID */
+	sleep ( 2 );
+	$l = $reddit->getListing ( $mainsubreddit, 5 );
+
+	return _redditautomation_search ( $l->data->children, $title );
+}
+
+/**
+ * Submit Post to Reddit.
+ *
+ * Action performed by currently logged in user.
+ *
+ * @param string $subreddit
+ * @param string $title
+ * @param string $body
+ * @return string either PostID
+ * @throws Exception on any error.
+ */
+function redditautomation_submit_userpost($subreddit, $title, $body) {
+	return 'Not currently Implemented.';
+
+	$reddit = _reddit_automation_get_reddit ();
+
+	$response = $reddit->createStory ( $title, NULL, $subreddit, $body );
+
+	/* Find our new post and save the ID */
+	sleep ( 2 );
+	$l = $reddit->getListing ( $mainsubreddit, 5 );
+
+	// Filter list by our user? Probably useful in busy sub..
+	// $l->kind == 't3'; // Post!
+	// $l->data->author == variable_get('redditautomation_username')
+	return _redditautomation_search ( $l->data->children, $title );
+}
+
+/**
+ * Submit a comment to a thread
+ *
+ * @param strig $post_id
+ * @param string $comment_body
+ * @return string $comment_id
+ */
+function redditautomation_post_comment($post_id, $comment_body) {
+	if (! $post_id || ! $comment_body) {
+		throw new Exception ( "Unable to post empty comment." );
+	}
+	$reddit = _redditautomation_get_reddit ();
+	$reddit->addComment ( $post_id, $comment_body );
+}
+
+/**
+ * Parse a string.
+ * Should require the PostID (which can be a post or a comment)
+ * and the string to be parsed (like “Music vote”, or “lyrics vote”.)
+ * It should also potentially have a configurable depth limit (for my purposes
+ * it would be 1, but that would probably be useful for others.)
+ * I only need it to return the count, but it may be useful if it returns an array of comment IDs containing the string.
+ * I can always run a count on that array when it’s returned.
+ */
+function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $sr = null) {
+	$comments = array ();
+	if (! $sr) {
+		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
+	}
+	$reddit = _redditautomation_get_reddit ();
+	$j = $reddit->getcommentreplies ( $sr, $postID, $commentID );
+
+	// Convert the response (object) into something parsable.. We want the Comment IDs.
+	foreach ( $j ['data'] ['children'] as $c ) {
+		// If we haven't specified a search, skip all the matching and just add them all
+		// Otherwise, check the body first, then the title for a match.
+		// Only store matches, if we specify a string.
+		if (is_null ( $string ) || preg_match ( '/' . $string . '/i', $c ['data'] ['body'] ) || preg_match ( '/' . $string . '/i', $c ['data'] ['title'] )) {
+			$comments [] = $c ['data'] ['name'];
+		}
+	}
+	return $comments;
+}
+
+/**
+ * Utility function, go through a list of posts, match the title against a known string, return that post's id.
+ *
+ * @param array $array
+ * @param string $string
+ */
+function _redditautomation_search($array, $string) {
+	foreach ( $array as $children ) {
+		if ($children->data->title == $string)
+			return $children->data->name;
+	}
+}
+/**
+ * Utility function, runs regex against comment body..
+ * case insensitive.
+ *
+ * Example: "lyrics vote", would match: "lYrIcs votes" etc..
+ *
+ * @param array $array
+ *        	of comments (result of a fetch_comments)
+ * @param string $string
+ * @return array of PostIDs for matching comments.
+ */
+function _redditautomation_commentsearch($array, $string) {
+	$matches = array ();
+	foreach ( $array as $children ) {
+		if (preg_match ( '/' . $string . '/i', $children->data->body ))
+			$matches [] = $children->data->name;
+	}
+	return $matches;
+}
+
+/**
+ * Utility function, ensures only one copy of the Reddit Object is
+ * instantiated at any one time.. for any user.. I suppose if two users
+ * happened to be using this at the same time, it would work for both,
+ * however, it is designed to run on the server, so, to all intents and purposes,
+ * reddit wouldn't know it was two different people running the scripts.
+ *
+ * @throws Exception
+ * @return reddit
+ */
+function _redditautomation_get_reddit() {
+	static $reddit;
+
+	if (! $reddit) {
+		_redditautomation_load_api ();
+		$u = variable_get ( 'redditautomation_username', '' );
+		$p = variable_get ( 'redditautomation_password', '' );
+		if (! $u || ! $p) {
+			throw new Exception ( "Invalid Username/Password config for Reddit Automation module." );
+		}
+		$reddit = new reddit ( $u, $p );
+	}
+	return $reddit;
 }
 function _redditautomation_load_api() {
 	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'redditapi' ) : 'sites/all/libraries/redditapi';
@@ -155,4 +373,40 @@ function _redditautomation_load_api() {
 	} catch ( Exception $e ) {
 	}
 	return FALSE;
+}
+
+function redditautomation_admin_form($form,$form_state){
+	$form['help'] = array(
+		'#type' => 'markup',
+			'#markup' => '<p>You need to set at least a site username & password, this
+			should be a new account just for this site, to act as a "Robot".</p>',
+	);
+	$form['username'] = array(
+			'#type' => 'textfield',
+			'#default_value' => variable_get('redditautomation_username',''),
+			'#title' => t('Reddit Username'),
+			'#description' => t('A user account from reddit.com.'),
+	);
+	$form['password'] = array(
+			'#type' => 'textfield',
+			'#default_value' => variable_get('redditautomation_password',''),
+			'#title' => t('Reddit Password'),
+			'#description' => t('The password for that account.'),
+	);
+	$form['subreddit'] = array(
+			'#type' => 'textfield',
+			'#default_value' => variable_get('redditautomation_default_subreddit',''),
+			'#title' => t("Default Subreddit"),
+			'#description' => t('If you don\'t want to specify which subreddit for the functions/tools, add one here, and it will be used instead.'),
+	);
+	$form['submit'] = array(
+			'#type' => 'submit',
+			'#value' => t('Save'),
+	);
+	return $form;
+
+}function redditautomation_admin_form_validate($form,$form_state){
+
+}function redditautomation_admin_form_submit($form,$form_state){
+
 }

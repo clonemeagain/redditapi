@@ -34,9 +34,9 @@ function redditautomation_requirements($phase) {
 					'title' => t ( 'Reddit Automation requires the library "reddit"' ),
 					'value' => 'Ensure you followed the installation instructions #LINK#HERE', // TODO: Get this link.
 					'severity' => REQUIREMENT_ERROR
-			)
+			);
 			// 'weight' => -1000, // Uncomment to put at top of list.
-			;
+
 		}
 	}
 	return $requirements;
@@ -45,8 +45,18 @@ function redditautomation_requirements($phase) {
 /**
  * Implements hook_install()
  */
-function reddit_automation_install() {
+function redditautomation_install() {
+	// Add some defaults
+	variable_set ( 'redditautomation_username', '' );
+	variable_set ( 'redditautomation_password', '' );
+	variable_set ( 'redditautomation_default_subreddit', '' );
+}
 /**
- * If we keep this here, in future, we can add more, if we don't, then we can't.
+ * Implements hook_install()
  */
+function redditautomation_uninstall() {
+	// Remove our defaults
+	variable_del ( 'redditautomation_username' );
+	variable_del ( 'redditautomation_password' );
+	variable_del ( 'redditautomation_default_subreddit' );
 }
