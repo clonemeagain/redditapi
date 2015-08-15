@@ -59,7 +59,7 @@ function redditlogin_install() {
 	variable_set ( 'redditlogin_access_token_url', 'https://ssl.reddit.com/api/v1/access_token' );
 	variable_set ( 'redditlogin_user_url', 'https://oauth.reddit.com/api/v1/me' );
 	variable_set ( 'redditlogin_block_title', 'Login with Reddit' );
-	variable_set ( 'redditlogin_block_text', '<a class="button" href="reddit/login">Login with Reddit</a><p style="color:gray;">Use this to login with your reddit account in the same manner as the last site.</p>' );
+	variable_set ( 'redditlogin_block_text', '<a class="button" href="reddit/login" title="Login using your reddit.com account">Login with Reddit</a><p style="color:gray;">Use this to login with your reddit.com account.</p>' );
 
 	global $base_url;
 	variable_set ( 'redditlogin_redirect_url', $base_url . '/redditlogin/success' );

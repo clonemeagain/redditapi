@@ -18,7 +18,7 @@
 function redditlogin_block_info() {
 	$blocks = array ();
 	$blocks ['redditlogin_login_form'] = array (
-			'info' => t ( "Reddit Login Block" ), // Set the administration name.
+			'info' => t ( "Reddit Login Block" ), // Set the administration name for the block.
 			'cache' => DRUPAL_CACHE_GLOBAL
 	);
 	return $blocks;
@@ -167,7 +167,7 @@ function redditlogin_login_config_form($form, &$form_state) {
 	$form ['create_on_new_user'] = array (
 			'#type' => 'checkbox',
 			'#title' => t ( 'Create a new user from Reddit name?' ),
-			'#description' => t ( 'Enable this to create a matching Drupal account for each new Reddit user who uses this function. Disable it, and those without accounts on this site will not be able to login with their matching Reddit account.' ),
+			'#description' => t ( 'Enable this to create a matching Drupal account for each new Reddit user who uses this function. Disable it, and those without accounts on this site will not be able to login with their matching Reddit account. It\'s a good idea to use the "<a href="https://www.drupal.org/project/nocurrent_pass">No current password" module</a> so these accounts can be edited by the user.' ),
 			'#default_value' => variable_get ( 'redditlogin_create_on_new_name', 0 ),
 			'#value' => variable_get ( 'redditlogin_create_on_new_name', 0 )
 	);
@@ -204,24 +204,24 @@ function redditlogin_login_config_form($form, &$form_state) {
 	$form ['API'] ['Advanced'] = array (
 			'#type' => 'fieldset',
 			'#title' => t ( 'Advanced API Settings' ),
-			'#description' => t ( 'Change these if Reddit changes them.. Which they likely won\'t.. but, just in case, alternatively, if you run your own version of reddit, or fork etc.. ' ),
+			'#description' => t ( 'Change these if Reddit changes them.. Which they likely won\'t.. but, just in case, alternatively, if you run your own version of reddit, or fork etc.. If you lose these, just re-install the module to retrieve the defaults.' ),
 			'#collapsible' => TRUE,
 			'#collapsed' => TRUE
 	);
 	$form ['API'] ['Advanced'] ['authorize_url'] = array (
 			'#type' => 'textfield',
 			'#title' => t ( 'Authorize URL (for Oauth2)' ),
-			'#default_value' => variable_get ( 'redditlogin_authorize_url', 'https://ssl.reddit.com/api/v1/authorize' )
+			'#default_value' => variable_get ( 'redditlogin_authorize_url', '' )
 	);
 	$form ['API'] ['Advanced'] ['access_token_url'] = array (
 			'#type' => 'textfield',
 			'#title' => 'Access Token URL',
-			'#default_value' => variable_get ( 'redditlogin_access_token_url', 'https://ssl.reddit.com/api/v1/access_token' )
+			'#default_value' => variable_get ( 'redditlogin_access_token_url', '' )
 	);
 	$form ['API'] ['Advanced'] ['user_url'] = array (
 			'#type' => 'textfield',
 			'#title' => 'Reddit User URL',
-			'#default_value' => variable_get ( 'redditlogin_user_url', 'https://oauth.reddit.com/api/v1/me' )
+			'#default_value' => variable_get ( 'redditlogin_user_url', '' )
 	);
 	$form ['submit'] = array (
 			'#type' => 'submit',
@@ -230,6 +230,13 @@ function redditlogin_login_config_form($form, &$form_state) {
 
 	return $form;
 }
+
+/**
+ * Save form to add API keys and set redirection URL's etc.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
 function redditlogin_login_config_form_submit($form, &$form_state) {
 	dpm ( $form_state );
 	if (isset ( $form_state ['values'] ['create_on_new_user'] )) {
@@ -372,7 +379,7 @@ function _redditlogin_user($name) {
 				':name' => $name
 		) )->fetchField ();
 		if (! $uid) {
-			// We did't find the user in the existing Drupal user table.
+			// We didn't find the user in the existing Drupal user table.
 			if ($create_account_no_match) {
 				// Make an account for them as per site-admin's instructions!
 				$user = _redditlogin_create_user ( $name );
@@ -404,7 +411,7 @@ function _redditlogin_user($name) {
 
 		if (! $allow_admins_to_login_with_reddit) {
 			// Quickly check this user account for "admin-ness" (default role-id is 3)
-			$rid = variable_get ( 'redditlogin_admin_rid', 3 ); // Just in case it is different, we made a copy on install.
+			$rid = variable_get ( 'redditlogin_admin_rid', 3 ); // Just in case it is different from default, we made a copy on install.
 			if (in_array ( $rid, $user->roles )) {
 				drupal_set_message ( t ( 'Sorry, you are unable to login with this account in this way.' ), 'error' );
 				drupal_goto ();
@@ -420,7 +427,7 @@ function _redditlogin_user($name) {
 		// TODO: Allow admin to determine redirect upon successful redditlogin!
 		drupal_goto ( 'user/' . $user->uid . '/edit' );
 	} catch ( Exception $e ) {
-		watchdog ( 'redditlogin', $name . ' legacy login errors: ' . $e->getTraceAsString () );
+		watchdog ( 'redditlogin', $name . ' login errors: ' . $e->getMessage () );
 		drupal_set_message ( t ( "Woah, something b0rked there. Try again?" ) );
 		drupal_goto ();
 	}
