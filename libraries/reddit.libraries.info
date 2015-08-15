@@ -1,5 +1,0 @@
-name = Reddit API Library
-machine name = reddit
-description = Provides an interface to the Reddit API
-version = 1
-files[php][] = reddit.php

@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * Implements hook_requiements
+ * Ensures that the Reddit API library is installed.
+ *
+ * @param string $phase
+ * @return array
+ */
+function redditautomation_requirements($phase) {
+	$requirements = array ();
+	if ($phase == 'runtime') {
+		if (($library = libraries_detect ( 'redditapi' )) && ! empty ( $library ['installed'] )) {
+			// The library is installed. Awesome!
+			// Try and load it..
+			try {
+				drupal_get_library ( 'redditapi' );
+				// We should be ok at this point..
+				$requirements ['reddit_library'] = array (
+						'title' => t ( 'Reddit Library found and tests ok.' ),
+						'value' => 1,
+						'severity' => REQUIREMENT_INFO
+				);
+			} catch ( Exception $e ) {
+				watchdog ( 'redditautomation', $e->getMessage () );
+				$requirements ['reddit_library'] = array (
+						'description' => 'An error was detected trying to load the Reddit API Library.',
+						'severity' => REQUIREMENT_ERROR
+				);
+			}
+		} else {
+			// Something went wrong. :(
+			$requirements ['reddit_library'] = array (
+					'title' => t ( 'Reddit Automation requires the library "reddit"' ),
+					'value' => 'Ensure you followed the installation instructions #LINK#HERE', // TODO: Get this link.
+					'severity' => REQUIREMENT_ERROR
+			)
+			// 'weight' => -1000, // Uncomment to put at top of list.
+			;
+		}
+	}
+	return $requirements;
+}
+
+/**
+ * Implements hook_install()
+ */
+function reddit_automation_install() {
+/**
+ * If we keep this here, in future, we can add more, if we don't, then we can't.
+ */
+}

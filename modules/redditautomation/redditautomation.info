@@ -1,0 +1,6 @@
+name = Reddit Automation Tools
+description = Provides tools to automate certain interactions between a Drupal site, and Reddit.com (or a reddit derivative)
+package = Reddit
+core = 7.x
+dependencies[] = libraries
+dependencies[] = redditapi

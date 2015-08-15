@@ -1,0 +1,6 @@
+name = Reddit Login
+description = Allows users to Login to a Drupal site with a Reddit Account
+package = Reddit
+core = 7.x
+dependencies[] = libraries
+dependencies[] = phpoauth2

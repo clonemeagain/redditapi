@@ -1,0 +1,512 @@
+<?php
+
+/**
+ * Set's up login functionality using the Reddit Oauth system.
+ *
+ * Can create user accounts should they not exist in the Drupal db.
+ */
+
+/**
+ * Implements hook_block_info()
+ *
+ * Define's a simple login block that allows users to login using Reddit by
+ * pushing a button.
+ *
+ * The title of this block is configurable.
+ * The HTML of this block is configurable, but, keep it short eh.
+ */
+function redditlogin_block_info() {
+	$blocks = array ();
+	$blocks ['redditlogin_login_form'] = array (
+			'info' => t ( "Reddit Login Block" ), // Set the administration name.
+			'cache' => DRUPAL_CACHE_GLOBAL
+	);
+	return $blocks;
+}
+function redditlogin_block_view($delta = '') {
+	$block = array ();
+	switch ($delta) {
+		case 'redditlogin_login_form' :
+			{
+				$block ['title'] = variable_get ( 'redditlogin_block_title', '' );
+				$block ['content'] = variable_get ( 'redditlogin_block_text', '' );
+			}
+			break;
+	}
+	return $block;
+}
+
+/**
+ * Implements hook_menu()
+ */
+function redditlogin_menu() {
+	$items = array ();
+	// Provides the callback for the login block.'
+	$items ['reddit/login'] = array (
+			'type' => MENU_CALLBACK,
+			'access callback' => TRUE,
+			'page callback' => 'redditlogin_login_callback'
+	);
+	// Provides a callback for the reddit login.
+	$items ['redditlogin/success'] = array (
+			'type' => MENU_CALLBACK,
+			'access callback' => TRUE,
+			'page callback' => 'redditlogin_login_success_callback'
+	);
+	// Setup an admin interface link on the admin/config screen & under admin/config/people
+	$items ['admin/config/people/redditlogin'] = array (
+			'title' => t ( 'Reddit Login' ),
+			// 'type' => MENU_DEFAULT_LOCAL_TASK,
+			'description' => t ( 'Allows reddit.com users to login to this site.' ),
+			'position' => 'right',
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array (
+					'redditlogin_login_config_form'
+			),
+			'access arguments' => array (
+					'administer site configuration'
+			)
+	);
+	// Setup a link on the above page, to configure the html of the block.
+	$items ['admin/config/people/redditlogin/block'] = array (
+			'title' => t ( 'Block Config' ),
+			'type' => MENU_LOCAL_ACTION, // TODO: Figure out how to make this a tab.. it should be a tab.
+			'description' => t ( 'Modify the reddit login block' ),
+			'page callback' => 'drupal_get_form',
+			'page arguments' => array (
+					'redditlogin_block_config_form'
+			),
+			'access arguments' => array (
+					'administer site configuration'
+			)
+	);
+
+	return $items;
+}
+
+/**
+ * Create the admin interface to configure the Block
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function redditlogin_block_config_form($form, &$form_state) {
+	$form ['help'] = array (
+			'#type' => 'markup',
+			'#markup' => '<h2>Login Block Configuration</h2>'
+	);
+	$form ['title'] = array (
+			'#type' => 'textfield',
+			'#title' => 'Set block Title',
+			'#value' => variable_get ( 'redditlogin_block_title', 'Login with Reddit' )
+	);
+	$form ['text'] = array (
+			'#type' => 'text_format',
+			'#format' => 'full_html',
+			'#title' => 'Set block HTML',
+			'#value' => variable_get ( 'redditlogin_block_text', redditlogin_BLOCK_DEFAULT_TEXT )
+	);
+	$form ['link'] = array (
+			'#type' => 'markup',
+			'#markup' => '<p>' . l ( 'Place block in Theme', 'admin/structure/block/manage/redditlogin/redditlogin_login_form/configure' ) . '</p>'
+	);
+	$form ['back'] = array (
+			'#type' => 'submit',
+			'#value' => 'Back'
+	);
+	$form ['save'] = array (
+			'#type' => 'submit',
+			'#value' => 'Save'
+	);
+	return $form;
+}
+function redditlogin_block_config_form_validate($form, &$form_state) {
+	// See if back button pushed, go back.
+	if ($form_state ['values'] ['op'] == 'Back') {
+		drupal_goto ( 'admin/config/people/redditlogin' );
+	}
+	// See if we have valid data..
+	$doc = $form_state ['values'] ['text'] ['value'];
+	if (preg_match ( '/href="reddit\/login"/', $doc )) {
+		// ook
+	} else {
+		// It's possible they used some form.. but really, we just want a link.
+		form_set_error ( 'text', 'Please enter valid HTML, including a link to "reddit/login".' );
+	}
+}
+function redditlogin_block_config_form_submit($form, &$form_state) {
+	// Save the data.
+	if (isset ( $form_state ['values'] ['title'] ) && $form_state ['values'] ['title']) {
+		$t = $form_state ['values'] ['title'];
+		variable_set ( 'redditlogin_block_title', $t );
+		drupal_set_message ( 'Set the block title to: ' . $t );
+	}
+	if (isset ( $form_state ['values'] ['text'] ['value'] ) && $form_state ['values'] ['text'] ['value']) {
+		$text = $form_state ['values'] ['text'] ['value'];
+		variable_set ( 'redditlogin_block_text', $text );
+		drupal_set_message ( "Set the block html." );
+	}
+}
+
+/**
+ * Provide site admins with form to add API keys and set redirection URL's etc.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function redditlogin_login_config_form($form, &$form_state) {
+
+	// TODO: Verify library is loaded, display status of library code, otherwise, display instructions to download library.
+	//$lib = drupal_get_library ( 'phpoauth2' );
+	$form ['help'] = array (
+			'#type' => 'markup',
+			'#markup' => '<h2>' . t ( 'Configure Reddit login' ) . '</h2>
+			<p>' . t ( 'Uses <a href="@url">Reddit.com</a>\'s Oauth2 client authentication to login users.' ) . '</p>'// . '<p>' . t ( 'Library detected:' ) . print_r ( $lib ) . '</p>'
+	);
+
+	$form ['create_on_new_user'] = array (
+			'#type' => 'checkbox',
+			'#title' => t ( 'Create a new user from Reddit name?' ),
+			'#description' => t ( 'Enable this to create a matching Drupal account for each new Reddit user who uses this function. Disable it, and those without accounts on this site will not be able to login with their matching Reddit account.' ),
+			'#default_value' => variable_get ( 'redditlogin_create_on_new_name', 0 ),
+			'#value' => variable_get ( 'redditlogin_create_on_new_name', 0 )
+	);
+	$form ['allow_admins_to_login'] = array (
+			'#type' => 'checkbox',
+			'#title' => t ( 'Allow Drupal Admin users to login with a Reddit account?' ),
+			'#default_value' => variable_get ( 'redditlogin_login_admins', 0 ),
+			'#value' => variable_get ( 'redditlogin_login_admins', 0 )
+	);
+
+	$form ['API'] = array (
+			'#type' => 'fieldset',
+			'#title' => t ( 'Reddit API' ),
+			'#description' => t ( 'If you don\'t have these details, please <a href="https://www.reddit.com/prefs/apps/">Create a Reddit App</a> using your Reddit Account first' ),
+			'#collapsible' => TRUE,
+			'#collapsed' => FALSE
+	);
+
+	$form ['API'] ['clientid'] = array (
+			'#type' => 'textfield',
+			'#title' => t ( 'Reddit API Client ID' ),
+			'#default_value' => variable_get ( 'redditlogin_client_id', '' )
+	);
+	$form ['API'] ['secret'] = array (
+			'#type' => 'textfield',
+			'#title' => t ( 'Reddit API Client Secret' ),
+			'#default_value' => variable_get ( 'redditlogin_client_secret', '' )
+	);
+	$form ['API'] ['redirect'] = array (
+			'#type' => 'textfield',
+			'#title' => t ( 'Redirect URL (upon client successful Reddit login)' ),
+			'#default_value' => variable_get ( 'redditlogin_redirect_url', '' )
+	);
+	$form ['API'] ['Advanced'] = array (
+			'#type' => 'fieldset',
+			'#title' => t ( 'Advanced API Settings' ),
+			'#description' => t ( 'Change these if Reddit changes them.. Which they likely won\'t.. but, just in case, alternatively, if you run your own version of reddit, or fork etc.. ' ),
+			'#collapsible' => TRUE,
+			'#collapsed' => TRUE
+	);
+	$form ['API'] ['Advanced'] ['authorize_url'] = array (
+			'#type' => 'textfield',
+			'#title' => t ( 'Authorize URL (for Oauth2)' ),
+			'#default_value' => variable_get ( 'redditlogin_authorize_url', 'https://ssl.reddit.com/api/v1/authorize' )
+	);
+	$form ['API'] ['Advanced'] ['access_token_url'] = array (
+			'#type' => 'textfield',
+			'#title' => 'Access Token URL',
+			'#default_value' => variable_get ( 'redditlogin_access_token_url', 'https://ssl.reddit.com/api/v1/access_token' )
+	);
+	$form ['API'] ['Advanced'] ['user_url'] = array (
+			'#type' => 'textfield',
+			'#title' => 'Reddit User URL',
+			'#default_value' => variable_get ( 'redditlogin_user_url', 'https://oauth.reddit.com/api/v1/me' )
+	);
+	$form ['submit'] = array (
+			'#type' => 'submit',
+			'#value' => 'Save'
+	);
+
+	return $form;
+}
+function redditlogin_login_config_form_submit($form, &$form_state) {
+	dpm ( $form_state );
+	if (isset ( $form_state ['values'] ['create_on_new_user'] )) {
+		variable_set ( 'redditlogin_create_on_new_name', 1 );
+	} else {
+		variable_set ( 'redditlogin_create_on_new_name', 0 );
+	}
+	if (isset ( $form_state ['values'] ['allow_admins_to_login'] )) {
+		variable_set ( 'redditlogin_login_admins', 1 );
+	} else {
+		variable_set ( 'redditlogin_login_admins', 0 );
+	}
+
+	// Save all API settings.
+	variable_set ( 'redditlogin_client_id', $form_state ['values'] ['clientid'] );
+	variable_set ( 'redditlogin_client_secret', $form_state ['values'] ['secret'] );
+	variable_set ( 'redditlogin_redirect_url', $form_state ['values'] ['redirect'] );
+	variable_set ( 'redditlogin_authorize_url', $form_state ['values'] ['authorize_url'] );
+	variable_set ( 'redditlogin_access_token_url', $form_state ['values'] ['access_token_url'] );
+	variable_set ( 'redditlogin_user_url', $form_state ['values'] ['user_url'] );
+	drupal_set_message ( 'Settings saved.' );
+}
+
+/**
+ * Actually process a login.
+ */
+function redditlogin_login_callback() {
+	// Tell the system to never cache this callback.. just in case.
+	drupal_page_is_cacheable ( FALSE );
+
+	// We don't assume that any other reddit module is available, id's must be set in module admin.
+	$clientId = variable_get ( 'redditlogin_client_id', '' );
+	$clientSecret = variable_get ( 'redditlogin_client_secret', '' );
+	$redirectUrl = variable_get ( 'redditlogin_redirect_url', '' );
+	$authorize_url = variable_get ( 'redditlogin_authorize_url', '' );
+	$access_token_url = variable_get ( 'redditlogin_access_token_url', '' );
+	$user_url = variable_get ( 'redditlogin_user_url', '' );
+
+	if (! $clientSecret || ! $clientId || ! $redirect_url || ! $authorize_url || ! $access_token_url || ! $user_url) {
+		_redditlogin_fail_oauth ();
+	}
+
+	if (! _redditlogin_load_oauth_client ()) {
+		drupal_set_message ( t ( 'The Oauth2 Library wasn\'t loaded properly.' ), 'error' );
+		drupal_goto ();
+	}
+
+	$client = new OAuth2\Client ( $clientId, $clientSecret, OAuth2\Client::AUTH_TYPE_AUTHORIZATION_BASIC );
+
+	// Send request for code
+	$authUrl = $client->getAuthenticationUrl ( $authorize_url, $redirect_url, array (
+			'response_type' => 'code',
+			'duration' => 'temporary',
+			'client_id' => $clientId,
+			"scope" => "identity",
+			"state" => _redditlogin_get_code ()
+	) );
+
+	// Do we have to use drupal_goto here?
+	drupal_goto ( $authUrl );
+	header ( 'Location: ' . $authUrl );
+	die ( "Redirecting to Reddit for authentication, if you are reading this,
+			its because you have disabled redirects.. we kinda need those for it to work." );
+}
+
+/**
+ * Handle a user who just logged into Reddit being redirected back by reddit.
+ */
+function redditlogin_login_success_callback() {
+	if (! isset ( $_GET ["code"] )) {
+		drupal_set_message ( 'Invalid response from Reddit Oauth.', 'error' );
+		drupal_goto ();
+	}
+
+	if (isset ( $_GET ["error"] )) {
+		drupal_set_message ( "<pre>OAuth Error: " . $_GET ["error"] . "\n" );
+		drupal_goto ();
+	}
+	// We don't assume that any other reddit module is available, id's must be set in module admin.
+	$clientId = variable_get ( 'redditlogin_client_id', '' );
+	$clientSecret = variable_get ( 'redditlogin_client_secret', '' );
+	$redirectUrl = variable_get ( 'redditlogin_redirect_url', '' );
+	$authorize_url = variable_get ( 'redditlogin_authorize_url', '' );
+	$access_token_url = variable_get ( 'redditlogin_access_token_url', '' );
+	$user_url = variable_get ( 'redditlogin_user_url', '' );
+
+	if (! $clientSecret || ! $clientId || ! $redirectUrl || ! $authorize_url || ! $access_token_url || ! $user_url) {
+		_redditlogin_fail_oauth ();
+	}
+
+	if (! _redditlogin_load_oauth_client ()) {
+		drupal_set_message ( t ( 'The Oauth2 Library wasn\'t loaded properly.' ), 'error' );
+		drupal_goto ();
+	}
+
+	$client = new OAuth2\Client ( $clientId, $clientSecret, OAuth2\Client::AUTH_TYPE_AUTHORIZATION_BASIC );
+
+	$params = array (
+			'code' => $_GET ["code"],
+			'redirect_uri' => variable_get ( 'redditlogin_redirect_url' ),
+			'state' => $_GET ['state']
+	);
+
+	$response = $client->getAccessToken ( $accessTokenUrl, "authorization_code", $params );
+	if (! is_array ( $response ['result'] )) {
+		fail ( "Invalid token response.." );
+	}
+	$client->setAccessToken ( $response ["result"] ["access_token"] );
+	$client->setAccessTokenType ( OAuth2\Client::ACCESS_TOKEN_BEARER );
+
+	$user_url = variable_get ( 'redditlogin_user_url' );
+	// Set the user_agent for the reddit-ing.. for Reddit's servers to receive.
+	// By using the site's url, reddit will know that it's not just us hammering them,
+	// However, by also including our project identifier, they can tell us to change if we are doing something wrong.
+	$ua = array (
+			'User-Agent' => variable_get ( 'redditlogin_user_agent' )
+	);
+	$response = $client->fetch ( $user_url, array (), 'GET', $ua );
+
+	// Grab the name that Reddit authenticated.
+	$name = isset ( $response ['result'] ['name'] ) ? $response ["result"] ["name"] : false;
+
+	_redditlogin_user ( $name );
+}
+
+/**
+ * Function that takes a name, and, quite dangerously, LOGS THAT ACCOUNT IN!
+ * So..
+ * be careful?
+ *
+ * @param string $name
+ */
+function _redditlogin_user($name) {
+	// See if site-admin have decided new users with reddit accounts can be created here.
+	$create_account_no_match = variable_get ( 'redditlogin_create_on_new_name', 0 );
+	$allow_admins_to_login_with_reddit = variable_get ( 'redditlogin_login_admins', 0 );
+	try {
+		// Load the user's id matching that name.
+		$uid = db_query ( 'SELECT uid FROM {users} WHERE name = :name LIMIT 1', array (
+				':name' => $name
+		) )->fetchField ();
+		if (! $uid) {
+			// We did't find the user in the existing Drupal user table.
+			if ($create_account_no_match) {
+				// Make an account for them as per site-admin's instructions!
+				$user = _redditlogin_create_user ( $name );
+				$uid = $user->uid;
+			} else {
+				watchdog ( 'redditlogin', 'Failed to find user @name.. attempt at legacy auth failed!.', array (
+						'@name' => $name
+				) );
+				drupal_set_message ( t ( "I don't think you can use this function, your name was not found in the database." ) );
+				drupal_goto ();
+			}
+		}
+
+		// Log user in.
+		$login = array (
+				'uid' => $uid
+		);
+		global $user;
+
+		// Load the user object matching that name.
+		$user = user_load ( $uid );
+
+		if (! $user || ! $user->uid) {
+			// Drupal can't find the user
+			watchdog ( 'redditlogin', "Unable to log in user [$name] via redditlogin.", 'error' );
+			drupal_set_message ( 'Invalid login.', 'error' );
+			drupal_goto ();
+		}
+
+		if (! $allow_admins_to_login_with_reddit) {
+			// Quickly check this user account for "admin-ness" (default role-id is 3)
+			$rid = variable_get ( 'redditlogin_admin_rid', 3 ); // Just in case it is different, we made a copy on install.
+			if (in_array ( $rid, $user->roles )) {
+				drupal_set_message ( t ( 'Sorry, you are unable to login with this account in this way.' ), 'error' );
+				drupal_goto ();
+			}
+		}
+
+		// Log user in.
+		$a = array (
+				'uid' => $user->uid
+		);
+		user_login_submit ( array (), $a ); // Overrides the $_SESSION.
+
+		// TODO: Allow admin to determine redirect upon successful redditlogin!
+		drupal_goto ( 'user/' . $user->uid . '/edit' );
+	} catch ( Exception $e ) {
+		watchdog ( 'redditlogin', $name . ' legacy login errors: ' . $e->getTraceAsString () );
+		drupal_set_message ( t ( "Woah, something b0rked there. Try again?" ) );
+		drupal_goto ();
+	}
+}
+
+/**
+ * Create a user account knowing just a name.
+ *
+ * @param string $name
+ * @return stdClass $user
+ * @throws Exception on empty $name
+ */
+function _redditlogin_create_user($name) {
+	// Drupal default allows a single character username..
+	// I'm guessing reddit does too.. couldn't see anywhere.
+	// But we can't let empty account names become valid.. ever.
+	if (! $name) {
+		throw new Exception ( "Name is empty." );
+	}
+	$user = entity_create ( 'user', array () );
+	// make a spoofed email address..
+	$fake_email = $name . '.' . random ( 4 ) . '@localhost.local';
+
+	$user->name = $name; // login same as reddit
+	$user->status = 1; // Enable the user by default.
+	                   // Set nescessary role to let the user log in.
+	$user->roles = array_merge ( $roles, array (
+			DRUPAL_AUTHENTICATED_RID
+	) );
+	// Set e-mail for lost password procedure
+	$user->init = $fake_email;
+	$user->mail = $fake_email;
+	// Set hashed password, user will never know this password, but we can use "No current password" module to allow them to change it without knowing it.
+	$user->pass = user_hash_password ( random ( 10 ) );
+
+	return user_save ( $user );
+}
+
+/**
+ * Utility function to load the Oauth2 Library.
+ *
+ * @return NULL|boolean
+ */
+function _redditlogin_load_oauth_client() {
+	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'phpoauth2' ) : 'sites/all/libraries/phpoauth2';
+	$client = $lib_path . 'src/OAuth2/Client.php';
+	try {
+		// Load the Client (once only)
+		if (! class_exists ( 'OAuth2\Client' ) && ! @include ($client)) {
+			return NULL;
+		}
+		return TRUE;
+	} catch ( Exception $e ) {
+	}
+	return FALSE;
+}
+
+/**
+ * Utility function to prevent typing this twice.
+ */
+function _redditlogin_fail_oauth() {
+	watchdog ( 'redditlogin', t ( 'Make sure every textfield is configured for redditlogin, otherwise you will get this.' ), 'error' );
+	drupal_set_message ( t ( 'Unable to login, module redditlogin is misconfigured: ' ) . l ( t ( 'Please correct this ASAP!' ), 'admin/config/people/redditlogin' ), 'error' );
+	drupal_goto ();
+}
+/**
+ * Re
+ *
+ * @return string
+ */
+function _redditlogin_get_code() {
+	if (isset ( $_SESSION ['redditlogin'] )) {
+		return $_SESSION ['redditlogin'];
+	}
+	$c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+	$code = '';
+	for($i = 0; $i < $length; $i ++) {
+		$code .= $c [rand ( 0, strlen ( $c ) - 1 )];
+	}
+	$_SESSION ['redditlogin'] = $code;
+	return $code;
+}
+function _redditlogin_check_code($code) {
+	$sess_code = isset ( $_SESSION ['redditlogin'] ) ? $_SESSION ['redditlogin'] : FALSE;
+	if ($sess_code === $code) {
+		return TRUE;
+	}
+	return FALSE;
+}

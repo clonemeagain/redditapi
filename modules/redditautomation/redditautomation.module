@@ -1,0 +1,158 @@
+<?php
+/**
+ * Utility functions, and exposed Drupal Actions that perform Reddit tasks.
+ */
+
+/**
+ * Send a Reddit Message from the configured account to the $username.
+ *
+ * @param string $username
+ * @param string $subject
+ * @param string $message
+ */
+function redditautomation_send_message($username, $subject, $message) {
+	_redditautomation_load_api ();
+	$reddit = new reddit ();
+	$reddit_usr = variable_get ( 'redditautomation_username', NULL );
+	$reddit_pass = variable_get ( 'redditautomation_password', NULL );
+	if (! is_null ( $reddit_usr ) && ! is_null ( $reddit_pass )) {
+		$reddit->login ( $reddit_usr, $reddit_pass );
+		$reddit_message = $reddit->sendMessage ( $username, $subject, $message );
+	}
+}
+
+/**
+ * Completely untried..
+ *
+ *
+ * I'm assuming when you specify to Rules that you want a list<user>, that
+ * it will spit out a list of User entities.. but I guess we'll have to try it and find out.
+ *
+ * @param array $userlist
+ * @param string $subject
+ * @param string $message
+ */
+function redditautomation_send_bulk_message($userlist, $subject, $message) {
+	foreach ( $userlist as $user ) {
+		redditautomation_send_bulk_message ( $user->name, $subject, $message );
+	}
+}
+
+/**
+ * Submit Post to Reddit.
+ *
+ * Action performed by administratively configured user account.
+ *
+ * @param string $subreddit
+ * @param string $title
+ * @param string $body
+ * @return string either PostID
+ * @throws Exception on any error.
+ */
+function redditautomation_submit_post($subreddit,$title,$body){
+	return 'Not currently Implemented.';
+}
+
+/**
+ * Submit Post to Reddit.
+ *
+ * Action performed by currently logged in user.
+ *
+ * @param string $subreddit
+ * @param string $title
+ * @param string $body
+ * @return string either PostID
+ * @throws Exception on any error.
+ */
+function redditautomation_submit_userpost($subreddit,$title,$body){
+	return 'Not currently Implemented.';
+}
+
+/**
+ * Defines the exposed Actions
+ * Implement hook_rules_action_info().
+ *
+ * http://www.drupalcontrib.org/api/drupal/contributions!rules!rules.api.php/function/hook_rules_action_info/7
+ */
+function redditautomation_rules_action_info() {
+	return array (
+			'redditautomation_send_message' => array (
+					'label' => t ( 'Send Message' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'username' => array (
+									'type' => 'text',
+									'label' => t ( 'Recipient' ),
+									'description' => t ( 'The reddit username of the recipient.' )
+							),
+							'subject' => array (
+									'type' => 'text',
+									'label' => t ( 'Subject' ),
+									'description' => t ( 'Subject of the Message.' )
+							),
+							'message' => array (
+									'type' => 'text',
+									'label' => t ( 'Message' ),
+									'description' => t ( 'Full message you wish to send.' )
+							)
+					),
+
+					'access callback' => array (
+							'redditautomation_sending_access_callback'
+					)
+			),
+			'redditautomation_send_bulk_message' => array (
+					'label' => t ( 'Send Bulk Message' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'recipients' => array (
+									'type' => 'list<user>',
+									'label' => t ( 'List of user\'s who should receive the message.' )
+							),
+							'subject' => array (
+									'type' => 'text',
+									'label' => t ( 'Subject' ),
+									'description' => t ( 'Subject of the Bulk Message.' )
+							),
+							'message' => array (
+									'type' => 'text',
+									'label' => t ( 'Message' ),
+									'description' => t ( 'Full message you wish to send to all in list.' )
+							)
+					),
+					'access callback' => array (
+							'redditautomation_sending_access_callback'
+					)
+			)
+	);
+}
+
+/**
+ * Defines a few permissions for Reddit Automation Tasks.
+ *
+ * Implements hook_permission()]
+ */
+function redditautomation_permission() {
+	return array (
+			'redditautomation can send' => array (
+					'title' => t ( 'Can send Reddit PM\'s' ),
+					'description' => t ( 'Granted to members who are able to impersonate the Admin and send PM\'s on the site\'s behalf.' )
+			)
+	);
+}
+function redditautomation_sending_access_callback() {
+	return user_access ( 'redditautomation can send' );
+}
+function _redditautomation_load_api() {
+	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'redditapi' ) : 'sites/all/libraries/redditapi';
+	$client = $lib_path . 'reddit.php';
+	try {
+		// Load the Client (once only)
+		if (! class_exists ( 'reddit' ) && ! @include ($client)) {
+			return NULL;
+		}
+		return TRUE;
+	} catch ( Exception $e ) {
+	}
+	return FALSE;
+}

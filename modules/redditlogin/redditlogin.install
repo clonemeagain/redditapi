@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * Implements hook_requiements
+ * Ensures that the Oauth2 library we use is installed.
+ *
+ * @param string $phase
+ * @return array
+ */
+function redditlogin_requirements($phase) {
+	$requirements = array ();
+	if ($phase == 'runtime') {
+		if (($library = libraries_detect ( 'phpoauth2' )) && ! empty ( $library ['installed'] )) {
+			// The library is installed. Awesome!
+			// Try and load it..
+			try {
+				drupal_get_library ( 'phpoauth2' );
+				// We should be ok at this point..
+				$requirements ['phpoauth2'] = array (
+						'title' => t ( 'PHP Oauth2 Library found and tests ok.' ),
+						'severity' => REQUIREMENT_INFO
+				);
+			} catch ( Exception $e ) {
+				watchdog ( 'redditlogin', $e->getMessage () );
+				$requirements ['phpoauth2'] = array (
+						'description' => 'An error was detected trying to load the PHP Oauth2 Library.',
+						'severity' => REQUIREMENT_ERROR
+				);
+			}
+		} else {
+			// Something went wrong. :(
+			$requirements ['reddit_library'] = array (
+					'title' => t ( 'Redditlogin requires the library "phpoauth2"' ),
+					'value' => '
+					Install phpoauth2 module and then read <a href="https://www.drupal.org/node/1440066">HOWTO</a>,
+					library found here: <a href="https://github.com/adoy/PHP-OAuth2">https://github.com/adoy/PHP-OAuth2</a>
+					',
+					'severity' => REQUIREMENT_ERROR
+			);
+			// 'weight' => -1000, // Uncomment to put at top of list.
+		}
+	}
+	return $requirements;
+}
+
+/**
+ * Implements hook_install()
+ */
+function redditlogin_install() {
+	// Check the role id of the administrator role.. for purposes..
+	// Actually, its just for an admin option to deny admin's this form of login.. for security.
+	$result = db_query ( "SELECT rid FROM {role} where name like :id", array (
+			':id' => 'administrator'
+	) );
+	variable_set ( 'redditlogin_admin_rid', $admin_rid = $result->fetchField ( 0 ) );
+
+	// Add defaults
+	variable_set ( 'redditlogin_authorize_url', 'https://ssl.reddit.com/api/v1/authorize' );
+	variable_set ( 'redditlogin_access_token_url', 'https://ssl.reddit.com/api/v1/access_token' );
+	variable_set ( 'redditlogin_user_url', 'https://oauth.reddit.com/api/v1/me' );
+	variable_set ( 'redditlogin_block_title', 'Login with Reddit' );
+	variable_set ( 'redditlogin_block_text', '<a class="button" href="reddit/login">Login with Reddit</a><p style="color:gray;">Use this to login with your reddit account in the same manner as the last site.</p>' );
+
+	global $base_url;
+	variable_set ( 'redditlogin_redirect_url', $base_url . '/redditlogin/success' );
+	variable_set ( 'redditlogin_user_agent', $base_url . ' :: drupal.org/project/redditlogin UserAgent v1' );
+}
+
+/**
+ * Implements hook_uninstall()
+ * Cleans up our var's from the db.
+ */
+function redditlogin_uninstall() {
+	// Find and delete our variables.
+	$results = db_select ( 'variable', 'v' )->fields ( 'v', array (
+			'name'
+	) )->condition ( 'name', 'redditlogin_%', 'LIKE' )->execute ();
+	foreach ( $results as $result ) {
+		variable_del ( $result->name );
+	}
+}
