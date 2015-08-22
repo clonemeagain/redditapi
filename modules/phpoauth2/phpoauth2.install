@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * Implements hook_requirements()
+ * @return array
+ */
+function phpoauth2_requirements() {
+	$requirements = array ();
+	// Verify curl, for the library itself requires it.
+	if (! extension_loaded ( 'curl' )) {
+		$requirements ['curl'] = array (
+				'title' => 'PHP Oauth2 requires php5_curl',
+				'value' => 'The PHP exention curl <i>must</i> be installed to use this library.',
+				'severity' => REQUIREMENT_ERROR
+		);
+	}
+	return $requirements;
+}

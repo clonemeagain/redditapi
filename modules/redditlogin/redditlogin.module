@@ -104,7 +104,7 @@ function redditlogin_block_config_form($form, &$form_state) {
 			'#type' => 'text_format',
 			'#format' => 'full_html',
 			'#title' => 'Set block HTML',
-			'#value' => variable_get ( 'redditlogin_block_text', redditlogin_BLOCK_DEFAULT_TEXT )
+			'#value' => variable_get ( 'redditlogin_block_text', '' )
 	);
 	$form ['link'] = array (
 			'#type' => 'markup',

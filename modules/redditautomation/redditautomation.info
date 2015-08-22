@@ -4,3 +4,4 @@ package = Reddit
 core = 7.x
 dependencies[] = libraries
 dependencies[] = redditapi
+dependencies[] = rules

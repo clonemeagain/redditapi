@@ -10,33 +10,26 @@
 function redditautomation_requirements($phase) {
 	$requirements = array ();
 	if ($phase == 'runtime') {
-		if (($library = libraries_detect ( 'redditapi' )) && ! empty ( $library ['installed'] )) {
-			// The library is installed. Awesome!
-			// Try and load it..
-			try {
-				drupal_get_library ( 'redditapi' );
-				// We should be ok at this point..
+		if (module_exists ( 'redditapi' )) {
+			$library = libraries_detect ( 'redditapi' );
+			if (! empty ( $library ['installed'] )) {
+				// The library is installed. Awesome!
+				return $requirements;
+			} else {
 				$requirements ['reddit_library'] = array (
-						'title' => t ( 'Reddit Library found and tests ok.' ),
-						'value' => 1,
-						'severity' => REQUIREMENT_INFO
-				);
-			} catch ( Exception $e ) {
-				watchdog ( 'redditautomation', $e->getMessage () );
-				$requirements ['reddit_library'] = array (
-						'description' => 'An error was detected trying to load the Reddit API Library.',
+						'title' => t ( 'Reddit API: ' . $library['error']),
+						'value' => t ( 'Reddit Automation module installed, but library failed to load or invalid version: ' . $library['message']),
 						'severity' => REQUIREMENT_ERROR
 				);
 			}
 		} else {
 			// Something went wrong. :(
 			$requirements ['reddit_library'] = array (
-					'title' => t ( 'Reddit Automation requires the library "reddit"' ),
+					'title' => t ( 'Reddit Automation requires the module redditapi and the library "reddit"' ),
 					'value' => 'Ensure you followed the installation instructions #LINK#HERE', // TODO: Get this link.
 					'severity' => REQUIREMENT_ERROR
 			);
 			// 'weight' => -1000, // Uncomment to put at top of list.
-
 		}
 	}
 	return $requirements;

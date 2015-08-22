@@ -1,0 +1,24 @@
+<?php
+/**
+ * Implements hook_libraries_info().
+ *
+ * Defines the library: redditapi.. ;-)
+ */
+function redditapi_libraries_info() {
+	$libraries ['redditapi'] = array (
+			'name' => 'Reddit API',
+			'vendor url' => 'http://github.com/clonemeagain/redditapi',
+			'download url' => 'http://github.com/clonemeagain/redditapi/reddit.php',
+			'version arguments' => array (
+					'file' => 'reddit.php',
+					'pattern' => '/Version (\d+)/',
+					'lines' => 2
+			),
+			'files' => array (
+					'php' => array (
+							'reddit.php'
+					)
+			)
+	);
+	return $libraries;
+}

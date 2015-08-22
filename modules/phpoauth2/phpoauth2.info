@@ -1,0 +1,5 @@
+name = PHP Oauth2 Library
+description = Wraps the code here: https://github.com/adoy/PHP-OAuth2
+package = Other
+core = 7.x
+dependencies[] = libraries

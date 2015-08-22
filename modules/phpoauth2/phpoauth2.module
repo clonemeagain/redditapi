@@ -1,0 +1,24 @@
+<?php
+/**
+ * Implements hook_libraries_info().
+ *
+ * Defines the library: redditapi.. ;-)
+ */
+function phpoauth2_libraries_info() {
+	$libraries ['phpoauth2'] = array (
+			'name' => 'Light PHP wrapper for the OAuth 2.0',
+			'vendor url' => 'https://github.com/adoy/PHP-OAuth2',
+			'download url' => 'https://github.com/adoy/PHP-OAuth2.git',
+			'version arguments' => array (
+					'file' => 'src/OAuth2/Client.php',
+					'pattern' => '/Version ([.\d]+)/i',
+					'lines' => 30
+			),
+			'files' => array (
+					'php' => array (
+							'src/OAuth2/Client.php'
+					)
+			)
+	);
+	return $libraries;
+}

@@ -5,12 +5,13 @@
 
 /**
  * Implements hook_menu()
+ *
  * @return array of menu items
  */
-function redditautomation_menu(){
-	$items = array();
-	$items ['admin/settings/redditautomation'] = array (
-			'title' => t ( 'Configure Reddit Automation Tools' ),
+function redditautomation_menu() {
+	$items = array ();
+	$items ['admin/config/workflow/redditautomation'] = array (
+			'title' => t ( 'Reddit Automation' ),
 			'description' => t ( 'Setup defaults for the Reddit Automation Tools' ),
 			'page callback' => 'drupal_get_form',
 			'page arguments' => array (
@@ -24,16 +25,17 @@ function redditautomation_menu(){
 	return $items;
 }
 
-
 /**
  * Defines the exposed Actions
  * Implement hook_rules_action_info().
  *
  * http://www.drupalcontrib.org/api/drupal/contributions!rules!rules.api.php/function/hook_rules_action_info/7
+ * For info on the data_types available:
+ * http://www.drupalcontrib.org/api/drupal/contributions%21rules%21modules%21rules_core.rules.inc/function/rules_rules_core_data_info/7
  */
 function redditautomation_rules_action_info() {
 	return array (
-	// Expose the Send Message function via Rules
+			// Expose the Send Message function via Rules
 			'redditautomation_send_message' => array (
 					'label' => t ( 'Send Message' ),
 					'group' => t ( 'Reddit' ),
@@ -81,9 +83,173 @@ function redditautomation_rules_action_info() {
 					'access callback' => array (
 							'redditautomation_sending_access_callback'
 					)
+			),
+			'redditautomation_submit_link' => array (
+					'label' => t ( 'Post Link' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'link' => array (
+									'type' => 'text', // Should type be 'uri' ?
+									'label' => t ( 'Link' ),
+									'description' => t ( 'Link to the interesting thing.' )
+							),
+							'title' => array (
+									'type' => 'text',
+									'label' => t ( 'Title' ),
+									'description' => t ( 'Description/Title of the interesting link.' )
+							),
+							'subreddit' => array (
+									'type' => 'text',
+									'label' => t ( 'Subreddit to receive link.' )
+							)
+					),
+					'access callback' => array (
+							'redditautomation_posting_access_callback'
+					),
+					'provides' => array (
+							'id' => array (
+									'type' => 'text',
+									'label' => t ( 'A post id' )
+							)
+					)
+			),
+			'redditautomation_submit_post' => array (
+					'label' => t ( 'Post Story' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'title' => array (
+									'type' => 'text',
+									'label' => t ( 'Title' ),
+									'description' => t ( 'Description/Title of the interesting story.' )
+							),
+							'body' => array (
+									'type' => 'text',
+									'label' => t ( 'Body' ),
+									'description' => t ( 'Body of message.' )
+							),
+							'subreddit' => array (
+									'type' => 'text',
+									'label' => t ( 'Subreddit to receive story.' )
+							)
+					),
+					'access callback' => array (
+							'redditautomation_posting_access_callback'
+					),
+					'provides' => array (
+							'id' => array (
+									'type' => 'text',
+									'label' => t ( 'A post id' )
+							)
+					)
+			),
+			'redditautomation_post_comment' => array (
+					'label' => t ( 'Post Comment' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'post_id' => array (
+									'type' => 'text',
+									'label' => t ( 'Post ID' ),
+									'description' => t ( 'Post ID of the post that will receive the comment.' )
+							),
+							'body' => array (
+									'type' => 'text',
+									'label' => t ( 'Body' ),
+									'description' => t ( 'Body of message.' )
+							)
+					),
+					'access callback' => array (
+							'redditautomation_posting_access_callback'
+					),
+					'provides' => array (
+							'id' => array (
+									'type' => 'text',
+									'label' => t ( 'A comment id' )
+							)
+					)
+			),
+			'redditautomation_fetch_comments' => array (
+					'label' => t ( 'Fetch Comments' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'post_id' => array (
+									'type' => 'text',
+									'label' => t ( 'Post ID' ),
+									'description' => t ( 'Post ID of the post that has the comments.' )
+							),
+							'string' => array (
+									'type' => 'text',
+									'label' => t ( 'Search string' ),
+									'description' => t ( 'String to search the comments/title for.' )
+							),
+							'depth' => array (
+									'type' => 'text',
+									'label' => t ( 'Body' ),
+									'description' => t ( 'Body of message.' )
+							)
+					),
+					'provides' => array (
+							'id_list' => array (
+									'type' => 'list<text>',
+									'label' => t ( 'A list of comment_ids' )
+							)
+					)
+			),
+			'redditautomation_fetch_posts' => array (
+					'label' => t ( 'Fetch Posts' ),
+					'group' => t ( 'Reddit' ),
+					'parameter' => array (
+							'sr' => array (
+									'type' => 'text',
+									'label' => t ( 'Subreddit' ),
+									'description' => t ( 'machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.' )
+							),
+							'string' => array (
+									'type' => 'text',
+									'label' => t ( 'Search string' ),
+									'description' => t ( 'String to search the title for (or all if empty).' )
+							),
+							'count' => array (
+									'type' => 'int',
+									'label' => t ( 'Number of posts to return' ),
+									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' )
+							)
+					),
+					'provides' => array (
+							'id_list' => array (
+									'type' => 'list<text>',
+									'label' => t ( 'A list of post_ids' )
+							)
+					)
 			)
-			// TODO: Add more functions, as they are completed.
 	);
+	// TODO: Add more functions, as they are completed.
+}
+
+/**
+ *
+ * Do we actually need our own Conditions? Well, if so, we can!
+ *
+ * implementation of hook_rules_condition_info()
+ *
+function redditautomation_rules_condition_info() {
+	return array(
+			'redditautomation_condition_package_type' => array(
+					'label' => t('Type of the package'),
+					'arguments' => array(
+							'package_id' => array('type' => 'value', 'label' => t('The type of the purchased package.')),
+							'package_type' => array('type' => 'string', 'label' => t('The type of the purchased package is')),
+					),
+					'module' => 'your_module',
+			),
+	);
+}
+
+/**
+ * Condition see if a post title matches.
+ *
+function redditautomation_condition_post_title($pid, $title) {
+	$post = redditautomation_fetch_posts()
+	return ($post_title == $type) ? true : false;
 }
 
 /**
@@ -106,6 +272,7 @@ function redditautomation_permission() {
 
 /**
  * Access callback for Rules Actions.
+ *
  * @return boolean
  */
 function redditautomation_sending_access_callback() {
@@ -113,12 +280,12 @@ function redditautomation_sending_access_callback() {
 }
 /**
  * Access callback for Rules Actions.
+ *
  * @return boolean
  */
 function redditautomation_posting_access_callback() {
 	return user_access ( 'redditautomation can post' );
 }
-
 
 /**
  * Send a Reddit Message from the configured account to the $username.
@@ -273,25 +440,75 @@ function redditautomation_post_comment($post_id, $comment_body) {
 	if (! $post_id || ! $comment_body) {
 		throw new Exception ( "Unable to post empty comment." );
 	}
+	_redditautomationlog("posting comment to $post_id: $comment_body");
 	$reddit = _redditautomation_get_reddit ();
 	$reddit->addComment ( $post_id, $comment_body );
-	//TODO: Fetch comment_id & return it.
+	// TODO: Fetch comment_id & return it.
+	sleep(2);
+	// Is this right? Seems stupid..
+	$comment = redditautomation_fetch_comments($post_id,null,1);
+}
+
+/**
+ * Search for posts
+ *
+ * @param string $sr
+ *        	(Which subreddit to search, defaults to the administratively defined default, or reddit itself)
+ * @param string $string
+ *        	(what to search for in title or body of comment)
+ * @param int $count
+ *        	(defaults to 25 (same as RedditAPI)
+ * @return array (Either empty, or full of post_id's)
+ */
+function redditautomation_fetch_posts($sr = null, $string = null, $count = 25) {
+	$comments = array ();
+	if (! $sr) {
+		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
+	}
+	_redditautomationlog("fetching posts from $sr, looking for \"$string\" want $count posts.");
+
+	$reddit = _redditautomation_get_reddit ();
+	// Reddit API max posts is 100
+	$count = ($count > 100) ? 100 : $count;
+
+	// Fetch posts.
+	$j = $reddit->getListing ( $sr, $count );
+
+	// Convert the response (object) into something parsable.. We want the Comment IDs.
+	foreach ( $j ['data'] ['children'] as $c ) {
+		// If we haven't specified a search, skip all the matching and just add them all
+		// Otherwise, check the title for a match.
+		// Only store matches, if we specify a string.
+		if (is_null ( $string ) || preg_match ( '/' . $string . '/i', $c ['data'] ['title'] )) {
+			$comments [] = $c ['data'] ['name'];
+		}
+	}
+	return $comments;
 }
 
 /**
  * Search for comments
- * 
+ *
  * @param string $post_id
- * @param string $string (what to search for in title or body of comment)
- * @param int $depth (defaults to 1)
- * @param string $sr (Which subreddit to search, defaults to the administratively defined default, or reddit itself)
+ * @param string $string
+ *        	(what to search for in title or body of comment)
+ * @param int $depth
+ *        	(defaults to 1)
+ * @param string $sr
+ *        	(Which subreddit to search, defaults to the administratively defined default, or reddit itself)
  * @return array (Either empty, or full of comment_id's)
+ *
+ *         TODO: Other users of this module might appreciate a bit more data being returned
+ *         when they search for comments.. not just the ID number.. Like, the data?
+ *         We shouldn't really batch select comments by id.. we should be able to enter a
+ *         bunch of id's and get those datums back..
  */
 function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $sr = null) {
 	$comments = array ();
 	if (! $sr) {
 		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
 	}
+	_redditautomationlog("fetching comments for $post_id, looking for \"$string\" $depth deep.");
 	$reddit = _redditautomation_get_reddit ();
 	$j = $reddit->getcommentreplies ( $sr, $postID, $commentID );
 
@@ -341,7 +558,8 @@ function _redditautomation_commentsearch($array, $string) {
 
 /**
  * Utility function, ensures only one copy of the Reddit Object is
- * instantiated at any one time.. for any user.. I suppose if two users
+ * instantiated at any one time..
+ * for any user.. I suppose if two users
  * happened to be using this at the same time, it would work for both,
  * however, it is designed to run on the server, so, to all intents and purposes,
  * reddit wouldn't know it was two different people running the scripts.
@@ -353,10 +571,16 @@ function _redditautomation_get_reddit() {
 	static $reddit;
 
 	if (! $reddit) {
-		_redditautomation_load_api ();
+		//_redditautomation_load_api ();
+		$reddit_library = libaries_load('redditapi');
+		if(!$reddit_library['installed']){
+			_redditautomationlog("Unable to load the reddit library.",2);
+			throw new ErrorException("Unable to load the reddit library.");
+		}
 		$u = variable_get ( 'redditautomation_username', '' );
 		$p = variable_get ( 'redditautomation_password', '' );
 		if (! $u || ! $p) {
+			_redditautomationlog(t('Invalid username/password configuration for Reddit Automation module.'),2);
 			throw new Exception ( "Invalid Username/Password config for Reddit Automation module." );
 		}
 		$reddit = new reddit ( $u, $p );
@@ -367,6 +591,7 @@ function _redditautomation_get_reddit() {
 /**
  * Found this on the internet somewhere, to ensure the library code is loaded
  * and that we have the class available.
+ * @see http://drupal.stackexchange.com/a/96181
  */
 function _redditautomation_load_api() {
 	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'redditapi' ) : 'sites/all/libraries/redditapi';
@@ -385,42 +610,65 @@ function _redditautomation_load_api() {
 /**
  * Begin the admin form for Reddit Automation Administration
  */
-function redditautomation_admin_form($form,$form_state){
-	$form['help'] = array(
-		'#type' => 'markup',
+function redditautomation_admin_form($form, $form_state) {
+	$form ['help'] = array (
+			'#type' => 'markup',
 			'#markup' => '<p>You need to set at least a site username & password, this
-			should be a new account just for this site, to act as a "Robot".</p>',
+			should be a new account just for this site, to act as a "Robot" on your behalf.</p>'
 	);
-	$form['username'] = array(
+	$form ['username'] = array (
 			'#type' => 'textfield',
-			'#default_value' => variable_get('redditautomation_username',''),
-			'#title' => t('Reddit Username'),
-			'#description' => t('A user account from reddit.com.'),
+			'#default_value' => variable_get ( 'redditautomation_username', '' ),
+			'#title' => t ( 'Reddit Username' ),
+			'#description' => t ( 'A user account from reddit.com.' )
 	);
-	$form['password'] = array(
+	$form ['password'] = array (
 			'#type' => 'textfield',
-			'#default_value' => variable_get('redditautomation_password',''),
-			'#title' => t('Reddit Password'),
-			'#description' => t('The password for that account.'),
+			'#default_value' => variable_get ( 'redditautomation_password', '' ),
+			'#title' => t ( 'Reddit Password' ),
+			'#description' => t ( 'The password for that account.' )
 	);
-	$form['subreddit'] = array(
+	$form ['subreddit'] = array (
 			'#type' => 'textfield',
-			'#default_value' => variable_get('redditautomation_default_subreddit',''),
-			'#title' => t("Default Subreddit"),
-			'#description' => t('If you don\'t want to specify which subreddit for the functions/tools, add one here, and it will be used instead.'),
+			'#default_value' => variable_get ( 'redditautomation_default_subreddit', '' ),
+			'#title' => t ( "Default Subreddit" ),
+			'#description' => t ( 'If you don\'t want to specify which subreddit for the functions/tools, add one here, and it will be used instead.' )
 	);
-	$form['submit'] = array(
+	$form ['debug'] = array (
+			'#type' => 'checkbox',
+			'#title' => t ( 'Enable debug mode.' ),
+			'#description' => t ( 'Logs everything to watchdog.' ),
+			'#default_value' => variable_get ( 'redditautomation_debugmode', 0 )
+	);
+	$form ['submit'] = array (
 			'#type' => 'submit',
-			'#value' => t('Save'),
+			'#value' => t ( 'Save' )
 	);
 	return $form;
-
 }
 /**
  * Save the settings.
  */
-function redditautomation_admin_form_submit($form,$form_state){
-	variable_set('redditautomation_username',$form_state['values']['username'];
-	variable_set('redditautomation_password',$form_state['values']['password'];
-	variable_set('redditautomation_default_subreddit',$form_state['values']['subreddit'];
+function redditautomation_admin_form_submit($form, $form_state) {
+	variable_set ( 'redditautomation_username', $form_state ['values'] ['username'] );
+	variable_set ( 'redditautomation_password', $form_state ['values'] ['password'] );
+	variable_set ( 'redditautomation_default_subreddit', $form_state ['values'] ['subreddit'] );
+	if (isset ( $form_state ['values'] ['debug'] )) {
+		variable_set ( 'redditautomation_debugmode', 1 );
+	} else {
+		variable_set ( 'redditautomation_debugmode', 0 );
+	}
+	_redditautomationlog("Configuration updated.");
+}
+
+/**
+ * Utility function to log things, checks level, if greater than 1, will
+ * always log, otherwise depends on debug being set in admin.
+ * @param string $text
+ * @param number $level
+ */
+function _redditautomationlog($text,$level=1){
+	if($level > 1 || variable_get('redditautomation_debugmode')){
+		watchdog('redditautomation',$text);
+	}
 }

@@ -1,0 +1,5 @@
+name = Reddit API
+description = Provides the Reddit API library
+package = Reddit
+core = 7.x
+dependencies[] = libraries

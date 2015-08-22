@@ -1,4 +1,4 @@
--- SUMMARY --
+  -- SUMMARY --
 
 The Reddit Automation Module provides Reddit API functions to Drupal, exposed
 as functions, the functions themselves are also exposed as Rule Actions, so you 
