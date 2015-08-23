@@ -510,7 +510,7 @@ class reddit {
 		$response = null;
 		if ($name && $text) {
 			$urlComment = "{$this->apiHost}/comment";
-			$postData = sprintf ( "thing_id=%s&text=%s&uh=%s", $name, $text, $thisl->modHash );
+			$postData = sprintf ( "thing_id=%s&text=%s&uh=%s", $name, $text, $this->modHash );
 			$response = $this->runCurl ( $urlComment, $postData );
 		}
 		return $response;
