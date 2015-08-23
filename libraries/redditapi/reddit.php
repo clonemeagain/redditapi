@@ -208,11 +208,14 @@ class reddit {
 					'text' => $body,
 					'uh' => $this->modHash
 			) );
-			if (DEBUG_VERBOSE)
-				file_put_contents ( 'reddit_message_error_log', 'REDDIT.PHP, url: ' . $urlMessage . ', postData: ' . $postData, FILE_APPEND );
 			$response = $this->runCurl ( $urlMessage, $postData );
 		}
-		return $response;
+		// Determine status of message
+		if($response->jquery[14][3][0] == 'your message has been delivered'){
+			return TRUE;
+		}
+		return FALSE;
+		//return $response;
 	}
 
 	/**
@@ -296,6 +299,7 @@ class reddit {
 		return $this->runCurl ( $urlListing );
 	}
 
+
 	/**
 	 * Get Post Comments
 	 *
@@ -304,7 +308,7 @@ class reddit {
 	 * @link http://www.reddit.com/dev/api#GET_listing
 	 * @param string $sr
 	 *        	The subreddit name. Ex: technology, limit (integer): The number of
-	 *        	posts to gather
+	 *        	comments to gather
 	 */
 	public function getpostcomments($sr, $postID, $limit = 5) {
 		$limit = (isset ( $limit )) ? "?limit=" . $limit : "";
@@ -315,6 +319,7 @@ class reddit {
 		}
 		return $this->runCurl ( $urlListing );
 	}
+
 
 	/**
 	 * Get Comment Replies
@@ -336,6 +341,7 @@ class reddit {
 		$urlListing = "http://www.reddit.com/r/{$sr}/comments/{$postID}/.json?sort=new&comment={$commentID}{$limit}";
 		return $this->runCurl ( $urlListing );
 	}
+
 
 	/**
 	 * Get page information
@@ -504,7 +510,7 @@ class reddit {
 		$response = null;
 		if ($name && $text) {
 			$urlComment = "{$this->apiHost}/comment";
-			$postData = sprintf ( "thing_id=%s&text=%s&uh=%s", $name, $text, $this->modHash );
+			$postData = sprintf ( "thing_id=%s&text=%s&uh=%s", $name, $text, $thisl->modHash );
 			$response = $this->runCurl ( $urlComment, $postData );
 		}
 		return $response;
@@ -665,7 +671,7 @@ class reddit {
 	}
 
 	/**
-	 * cURL request
+	 * cURL request, response parsed as JSON automatically.
 	 *
 	 * General cURL request function for GET and POST
 	 *
@@ -674,6 +680,8 @@ class reddit {
 	 *        	URL to be requested
 	 * @param string $postVals
 	 *        	NVP string to be send with POST request
+	 *
+	 * @return stdClass
 	 */
 	private function runCurl($url, $postVals = null) {
 		$ch = curl_init ( $url );
