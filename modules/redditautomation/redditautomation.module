@@ -102,7 +102,8 @@ function redditautomation_rules_action_info() {
 							),
 							'subreddit' => array (
 									'type' => 'text',
-									'label' => t ( 'Subreddit to receive link.' )
+									'label' => t ( 'Subreddit to receive link.' ),
+									'optional' => TRUE
 							)
 					),
 					'access callback' => array (
@@ -132,7 +133,8 @@ function redditautomation_rules_action_info() {
 							),
 							'subreddit' => array (
 									'type' => 'text',
-									'label' => t ( 'Subreddit to receive story.' )
+									'label' => t ( 'Subreddit to receive story.' ),
+									'optional' => TRUE
 							)
 					),
 					'access callback' => array (
@@ -184,12 +186,14 @@ function redditautomation_rules_action_info() {
 							'string' => array (
 									'type' => 'text',
 									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the comments/title for.' )
+									'description' => t ( 'String to search the comments/title for.' ),
+									'optional' => TRUE
 							),
 							'depth' => array (
 									'type' => 'text',
 									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' )
+									'description' => t ( 'Body of message.' ),
+									'optional' => TRUE
 							)
 					),
 					'provides' => array (
@@ -212,12 +216,14 @@ function redditautomation_rules_action_info() {
 							'string' => array (
 									'type' => 'text',
 									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the comments/title for.' )
+									'description' => t ( 'String to search the comments/title for.' ),
+									'optional' => TRUE
 							),
 							'depth' => array (
 									'type' => 'text',
 									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' )
+									'description' => t ( 'Body of message.' ),
+									'optional' => TRUE
 							)
 					),
 					'provides' => array (
@@ -240,12 +246,14 @@ function redditautomation_rules_action_info() {
 							'string' => array (
 									'type' => 'text',
 									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the title for (or all if empty).' )
+									'description' => t ( 'String to search the title for (or all if empty).' ),
+									'optional' => TRUE
 							),
 							'count' => array (
 									'type' => 'int',
 									'label' => t ( 'Number of posts to return' ),
-									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' )
+									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' ),
+									'optional' => TRUE
 							)
 					),
 					'provides' => array (
@@ -268,12 +276,14 @@ function redditautomation_rules_action_info() {
 							'string' => array (
 									'type' => 'text',
 									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the title for (or all if empty).' )
+									'description' => t ( 'String to search the title for (or all if empty).' ),
+									'optional' => TRUE
 							),
 							'count' => array (
 									'type' => 'int',
 									'label' => t ( 'Number of posts to return' ),
-									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' )
+									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' ),
+									'optional' => TRUE
 							)
 					),
 					'provides' => array (
@@ -359,19 +369,7 @@ function redditautomation_send_message($username, $subject, $message) {
 	$reddit = _redditautomation_get_reddit ();
 
 	_redditautomationlog ( "posting message: $subject to /u/$username" );
-	$l = $reddit->sendMessage ( $username, $subject, $message );
-	if (variable_get ( 'redditautomation_debugmode' )) {
-		if (module_exists ( 'devel' )) {
-			dpm ( $l, 'Return object from Reddit' );
-		}
-		_redditautomationlog ( "Sent message: " . print_r ( $l, true ) );
-	}
-	// Check for success and indicate?
-	// TODO: Move to API library
-	if ($l->jquery [14] [3] [0] == 'your message has been delivered') {
-		return TRUE;
-	}
-	return FALSE;
+	return $reddit->sendMessage ( $username, $subject, $message );
 }
 
 /**
@@ -898,14 +896,12 @@ function redditautomation_admin_form($form, $form_state) {
  */
 function redditautomation_admin_form_submit($form, $form_state) {
 	$fsv = $form_state ['values'];
-	variable_set ( 'redditautomation_username', $form_state ['values'] ['username'] );
-	variable_set ( 'redditautomation_password', $form_state ['values'] ['password'] );
-	variable_set ( 'redditautomation_default_subreddit', $form_state ['values'] ['subreddit'] );
-	if (isset ( $form_state ['values'] ['debug'] )) {
-		variable_set ( 'redditautomation_debugmode', 1 );
-	} else {
-		variable_set ( 'redditautomation_debugmode', 0 );
-	}
+	variable_set ( 'redditautomation_username', $fsv ['username'] );
+	variable_set ( 'redditautomation_password', $fsv ['password'] );
+	variable_set ( 'redditautomation_default_subreddit', $fsv ['subreddit'] );
+
+	variable_set ( 'redditautomation_debugmode', $fsv ['debug'] );
+
 	_redditautomationlog ( "Configuration updated." );
 
 	if (module_exists ( 'devel' ) && $form_state ['input'] ['op'] == 'Test') {
