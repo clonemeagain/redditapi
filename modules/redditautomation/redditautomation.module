@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Utility functions, and exposed Drupal Actions that perform Reddit tasks.
  */
@@ -9,20 +10,20 @@
  * @return array of menu items
  */
 function redditautomation_menu() {
-	$items = array ();
-	$items ['admin/config/workflow/redditautomation'] = array (
-			'title' => t ( 'Reddit Automation' ),
-			'description' => t ( 'Setup defaults for the Reddit Automation Tools' ),
-			'page callback' => 'drupal_get_form',
-			'page arguments' => array (
-					'redditautomation_admin_form'
-			),
-			'access arguments' => array (
-					'administer site configuration'
-			)
-	);
-
-	return $items;
+  $items = array();
+  $items['admin/config/workflow/redditautomation'] = array(
+    'title' => t('Reddit Automation'), 
+    'description' => t('Setup defaults for the Reddit Automation Tools'), 
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array(
+      'redditautomation_admin_form'
+    ), 
+    'access arguments' => array(
+      'administer site configuration'
+    )
+  );
+  
+  return $items;
 }
 
 /**
@@ -34,267 +35,267 @@ function redditautomation_menu() {
  * http://www.drupalcontrib.org/api/drupal/contributions%21rules%21modules%21rules_core.rules.inc/function/rules_rules_core_data_info/7
  */
 function redditautomation_rules_action_info() {
-	return array (
-			// Expose the Send Message function via Rules
-			'redditautomation_send_message' => array (
-					'label' => t ( 'Send Message' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'username' => array (
-									'type' => 'text',
-									'label' => t ( 'Recipient' ),
-									'description' => t ( 'The reddit username of the recipient.' )
-							),
-							'subject' => array (
-									'type' => 'text',
-									'label' => t ( 'Subject' ),
-									'description' => t ( 'Subject of the Message.' )
-							),
-							'message' => array (
-									'type' => 'text',
-									'label' => t ( 'Message' ),
-									'description' => t ( 'Full message you wish to send.' )
-							)
-					),
-
-					'access callback' => array (
-							'redditautomation_sending_access_callback'
-					)
-			),
-			// Expose the Send Bulk Message function via Rules
-			'redditautomation_send_bulk_message' => array (
-					'label' => t ( 'Send Bulk Message' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'recipients' => array (
-									'type' => 'list<user>',
-									'label' => t ( 'List of user\'s who should receive the message.' )
-							),
-							'subject' => array (
-									'type' => 'text',
-									'label' => t ( 'Subject' ),
-									'description' => t ( 'Subject of the Bulk Message.' )
-							),
-							'message' => array (
-									'type' => 'text',
-									'label' => t ( 'Message' ),
-									'description' => t ( 'Full message you wish to send to all in list.' )
-							)
-					),
-					'access callback' => array (
-							'redditautomation_sending_access_callback'
-					)
-			),
-			// Expose the Submit Link function via Rules
-			'redditautomation_submit_link' => array (
-					'label' => t ( 'Post Link' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'link' => array (
-									'type' => 'text', // Should type be 'uri' ?
-									'label' => t ( 'Link' ),
-									'description' => t ( 'Link to the interesting thing.' )
-							),
-							'title' => array (
-									'type' => 'text',
-									'label' => t ( 'Title' ),
-									'description' => t ( 'Description/Title of the interesting link.' )
-							),
-							'subreddit' => array (
-									'type' => 'text',
-									'label' => t ( 'Subreddit to receive link.' ),
-									'optional' => TRUE
-							)
-					),
-					'access callback' => array (
-							'redditautomation_posting_access_callback'
-					),
-					'provides' => array (
-							'id' => array (
-									'type' => 'text',
-									'label' => t ( 'A post id' )
-							)
-					)
-			),
-			// Expose the Submit Post function via Rules
-			'redditautomation_submit_post' => array (
-					'label' => t ( 'Post Story' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'title' => array (
-									'type' => 'text',
-									'label' => t ( 'Title' ),
-									'description' => t ( 'Description/Title of the interesting story.' )
-							),
-							'body' => array (
-									'type' => 'text',
-									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' )
-							),
-							'subreddit' => array (
-									'type' => 'text',
-									'label' => t ( 'Subreddit to receive story.' ),
-									'optional' => TRUE
-							)
-					),
-					'access callback' => array (
-							'redditautomation_posting_access_callback'
-					),
-					'provides' => array (
-							'id' => array (
-									'type' => 'text',
-									'label' => t ( 'A post id' )
-							)
-					)
-			),
-			// Expose the Submit Comment function via Rules
-			'redditautomation_post_comment' => array (
-					'label' => t ( 'Post Comment' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'post_id' => array (
-									'type' => 'text',
-									'label' => t ( 'Post ID' ),
-									'description' => t ( 'Post ID of the post that will receive the comment.' )
-							),
-							'body' => array (
-									'type' => 'text',
-									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' )
-							)
-					),
-					'access callback' => array (
-							'redditautomation_posting_access_callback'
-					),
-					'provides' => array (
-							'id' => array (
-									'type' => 'text',
-									'label' => t ( 'A comment id' )
-							)
-					)
-			),
-			// Expose the Fetch Comments function via Rules
-			'redditautomation_fetch_comments' => array (
-					'label' => t ( 'Fetch Comments' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'post_id' => array (
-									'type' => 'text',
-									'label' => t ( 'Post ID' ),
-									'description' => t ( 'Post ID of the post that has the comments.' )
-							),
-							'string' => array (
-									'type' => 'text',
-									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the comments/title for.' ),
-									'optional' => TRUE
-							),
-							'depth' => array (
-									'type' => 'text',
-									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' ),
-									'optional' => TRUE
-							)
-					),
-					'provides' => array (
-							'id_list' => array (
-									'type' => 'list<text>',
-									'label' => t ( 'A list of comment_ids' )
-							)
-					)
-			),
-			// Expose the Fetch Comment IDs function via Rules
-			'redditautomation_fetch_comment_ids' => array (
-					'label' => t ( 'Fetch Comment IDs' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'post_id' => array (
-									'type' => 'text',
-									'label' => t ( 'Post ID' ),
-									'description' => t ( 'Post ID of the post that has the comments.' )
-							),
-							'string' => array (
-									'type' => 'text',
-									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the comments/title for.' ),
-									'optional' => TRUE
-							),
-							'depth' => array (
-									'type' => 'text',
-									'label' => t ( 'Body' ),
-									'description' => t ( 'Body of message.' ),
-									'optional' => TRUE
-							)
-					),
-					'provides' => array (
-							'id_list' => array (
-									'type' => 'list<text>',
-									'label' => t ( 'A list of comment_ids' )
-							)
-					)
-			),
-			// Expose the Fetch Posts function via Rules
-			'redditautomation_fetch_posts' => array (
-					'label' => t ( 'Fetch Posts' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'sr' => array (
-									'type' => 'text',
-									'label' => t ( 'Subreddit' ),
-									'description' => t ( 'machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.' )
-							),
-							'string' => array (
-									'type' => 'text',
-									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the title for (or all if empty).' ),
-									'optional' => TRUE
-							),
-							'count' => array (
-									'type' => 'int',
-									'label' => t ( 'Number of posts to return' ),
-									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' ),
-									'optional' => TRUE
-							)
-					),
-					'provides' => array (
-							'id_list' => array (
-									'type' => 'list<text>',
-									'label' => t ( 'A list of post_ids' )
-							)
-					)
-			),
-			// Expose the Fetch Post IDs function via Rules
-			'redditautomation_fetch_post_ids' => array (
-					'label' => t ( 'Fetch Posts' ),
-					'group' => t ( 'Reddit' ),
-					'parameter' => array (
-							'sr' => array (
-									'type' => 'text',
-									'label' => t ( 'Subreddit' ),
-									'description' => t ( 'machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.' )
-							),
-							'string' => array (
-									'type' => 'text',
-									'label' => t ( 'Search string' ),
-									'description' => t ( 'String to search the title for (or all if empty).' ),
-									'optional' => TRUE
-							),
-							'count' => array (
-									'type' => 'int',
-									'label' => t ( 'Number of posts to return' ),
-									'description' => t ( 'Defaults to Reddit API default of 25 posts, but can be increased to 100.' ),
-									'optional' => TRUE
-							)
-					),
-					'provides' => array (
-							'id_list' => array (
-									'type' => 'list<text>',
-									'label' => t ( 'A list of post_ids' )
-							)
-					)
-			)
-	);
-	// TODO: Add more functions, as they are completed.
+  return array(
+    // Expose the Send Message function via Rules
+    'redditautomation_send_message' => array(
+      'label' => t('Send Message'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'username' => array(
+          'type' => 'text', 
+          'label' => t('Recipient'), 
+          'description' => t('The reddit username of the recipient.')
+        ), 
+        'subject' => array(
+          'type' => 'text', 
+          'label' => t('Subject'), 
+          'description' => t('Subject of the Message.')
+        ), 
+        'message' => array(
+          'type' => 'text', 
+          'label' => t('Message'), 
+          'description' => t('Full message you wish to send.')
+        )
+      ), 
+      
+      'access callback' => array(
+        'redditautomation_sending_access_callback'
+      )
+    ), 
+    // Expose the Send Bulk Message function via Rules
+    'redditautomation_send_bulk_message' => array(
+      'label' => t('Send Bulk Message'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'recipients' => array(
+          'type' => 'list<user>', 
+          'label' => t('List of user\'s who should receive the message.')
+        ), 
+        'subject' => array(
+          'type' => 'text', 
+          'label' => t('Subject'), 
+          'description' => t('Subject of the Bulk Message.')
+        ), 
+        'message' => array(
+          'type' => 'text', 
+          'label' => t('Message'), 
+          'description' => t('Full message you wish to send to all in list.')
+        )
+      ), 
+      'access callback' => array(
+        'redditautomation_sending_access_callback'
+      )
+    ), 
+    // Expose the Submit Link function via Rules
+    'redditautomation_submit_link' => array(
+      'label' => t('Post Link'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'link' => array(
+          'type' => 'text',  // Should type be 'uri' ?
+          'label' => t('Link'), 
+          'description' => t('Link to the interesting thing.')
+        ), 
+        'title' => array(
+          'type' => 'text', 
+          'label' => t('Title'), 
+          'description' => t('Description/Title of the interesting link.')
+        ), 
+        'subreddit' => array(
+          'type' => 'text', 
+          'label' => t('Subreddit to receive link.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'access callback' => array(
+        'redditautomation_posting_access_callback'
+      ), 
+      'provides' => array(
+        'id' => array(
+          'type' => 'text', 
+          'label' => t('A post id')
+        )
+      )
+    ), 
+    // Expose the Submit Post function via Rules
+    'redditautomation_submit_self' => array(
+      'label' => t('Post Self'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'title' => array(
+          'type' => 'text', 
+          'label' => t('Title'), 
+          'description' => t('Description/Title of the interesting story.')
+        ), 
+        'body' => array(
+          'type' => 'text', 
+          'label' => t('Body'), 
+          'description' => t('Body of message.')
+        ), 
+        'subreddit' => array(
+          'type' => 'text', 
+          'label' => t('Subreddit to receive story.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'access callback' => array(
+        'redditautomation_posting_access_callback'
+      ), 
+      'provides' => array(
+        'id' => array(
+          'type' => 'text', 
+          'label' => t('A post id')
+        )
+      )
+    ), 
+    // Expose the Submit Comment function via Rules
+    'redditautomation_post_comment' => array(
+      'label' => t('Post Comment'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'post_id' => array(
+          'type' => 'text', 
+          'label' => t('Post ID'), 
+          'description' => t('Post ID of the post that will receive the comment.')
+        ), 
+        'body' => array(
+          'type' => 'text', 
+          'label' => t('Body'), 
+          'description' => t('Body of message.')
+        )
+      ), 
+      'access callback' => array(
+        'redditautomation_posting_access_callback'
+      ), 
+      'provides' => array(
+        'id' => array(
+          'type' => 'text', 
+          'label' => t('A comment id')
+        )
+      )
+    ), 
+    // Expose the Fetch Comments function via Rules
+    'redditautomation_fetch_comments' => array(
+      'label' => t('Fetch Comments'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'post_id' => array(
+          'type' => 'text', 
+          'label' => t('Post ID'), 
+          'description' => t('Post ID of the post that has the comments.')
+        ), 
+        'string' => array(
+          'type' => 'text', 
+          'label' => t('Search string'), 
+          'description' => t('String to search the comments/title for.'), 
+          'optional' => TRUE
+        ), 
+        'depth' => array(
+          'type' => 'text', 
+          'label' => t('Depth'), 
+          'description' => t('How many levels of comments to decend into.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'provides' => array(
+        'id_list' => array(
+          'type' => 'list<text>', 
+          'label' => t('An array of data.')
+        )
+      )
+    ), 
+    // Expose the Fetch Comment IDs function via Rules
+    'redditautomation_fetch_comment_ids' => array(
+      'label' => t('Fetch Comment IDs'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'post_id' => array(
+          'type' => 'text', 
+          'label' => t('Post ID'), 
+          'description' => t('Post ID of the post that has the comments.')
+        ), 
+        'string' => array(
+          'type' => 'text', 
+          'label' => t('Search string'), 
+          'description' => t('String to search the comments/title for.'), 
+          'optional' => TRUE
+        ), 
+        'depth' => array(
+          'type' => 'text', 
+          'label' => t('Depth'), 
+          'description' => t('How many levels of comments to decend into.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'provides' => array(
+        'id_list' => array(
+          'type' => 'list<text>', 
+          'label' => t('A list of comment_ids')
+        )
+      )
+    ), 
+    // Expose the Fetch Posts function via Rules
+    'redditautomation_fetch_posts' => array(
+      'label' => t('Fetch Posts'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'sr' => array(
+          'type' => 'text', 
+          'label' => t('Subreddit'), 
+          'description' => t('machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.')
+        ), 
+        'string' => array(
+          'type' => 'text', 
+          'label' => t('Search string'), 
+          'description' => t('String to search the title for (or all if empty).'), 
+          'optional' => TRUE
+        ), 
+        'count' => array(
+          'type' => 'int', 
+          'label' => t('Number of posts to return'), 
+          'description' => t('Defaults to Reddit API default of 25 posts, but can be increased to 100.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'provides' => array(
+        'id_list' => array(
+          'type' => 'list<text>', 
+          'label' => t('An array of data.. ')
+        )
+      )
+    ), 
+    // Expose the Fetch Post IDs function via Rules
+    'redditautomation_fetch_post_ids' => array(
+      'label' => t('Fetch Post IDs'), 
+      'group' => t('Reddit'), 
+      'parameter' => array(
+        'sr' => array(
+          'type' => 'text', 
+          'label' => t('Subreddit'), 
+          'description' => t('machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.')
+        ), 
+        'string' => array(
+          'type' => 'text', 
+          'label' => t('Search string'), 
+          'description' => t('String to search the title for (or all if empty).'), 
+          'optional' => TRUE
+        ), 
+        'count' => array(
+          'type' => 'int', 
+          'label' => t('Number of posts to return'), 
+          'description' => t('Defaults to Reddit API default of 25 posts, but can be increased to 100.'), 
+          'optional' => TRUE
+        )
+      ), 
+      'provides' => array(
+        'id_list' => array(
+          'type' => 'list<text>', 
+          'label' => t('A list of post_ids')
+        )
+      )
+    )
+  );
+  // TODO: Add more functions, as they are completed.
 }
 
 /**
@@ -329,16 +330,16 @@ function redditautomation_rules_action_info() {
  * Implements hook_permission()]
  */
 function redditautomation_permission() {
-	return array (
-			'redditautomation can send' => array (
-					'title' => t ( 'Can send Reddit PM\'s' ),
-					'description' => t ( 'Granted to members who are able to impersonate the Admin and send PM\'s on the site\'s behalf.' )
-			),
-			'redditautomation can post' => array (
-					'title' => t ( 'Can post links/stories to Reddit' ),
-					'description' => t ( 'Granted to members who are able to impersonate the Admin and post content to reddit on the site\'s behalf.' )
-			)
-	);
+  return array(
+    'redditautomation can send' => array(
+      'title' => t('Can send Reddit PM\'s'), 
+      'description' => t('Granted to members who are able to impersonate the Admin and send PM\'s on the site\'s behalf.')
+    ), 
+    'redditautomation can post' => array(
+      'title' => t('Can post links/stories to Reddit'), 
+      'description' => t('Granted to members who are able to impersonate the Admin and post content to reddit on the site\'s behalf.')
+    )
+  );
 }
 
 /**
@@ -347,29 +348,33 @@ function redditautomation_permission() {
  * @return boolean
  */
 function redditautomation_sending_access_callback() {
-	return user_access ( 'redditautomation can send' );
+  return user_access('redditautomation can send');
 }
+
 /**
  * Access callback for Rules Actions.
  *
  * @return boolean
  */
 function redditautomation_posting_access_callback() {
-	return user_access ( 'redditautomation can post' );
+  return user_access('redditautomation can post');
 }
 
 /**
  * Send a Reddit Message from the configured account to the $username.
  *
- * @param string $username
- * @param string $subject
- * @param string $message
+ * @param string $username        
+ * @param string $subject        
+ * @param string $message        
  */
 function redditautomation_send_message($username, $subject, $message) {
-	$reddit = _redditautomation_get_reddit ();
-
-	_redditautomationlog ( "posting message: $subject to /u/$username" );
-	return $reddit->sendMessage ( $username, $subject, $message );
+  $reddit = _redditautomation_get_reddit();
+  
+  // Strip of preceeding /u/ if present
+  $username = str_replace('/u/', '', $username);
+  
+  _redditautomationlog("posting message: $subject to $username");
+  return $reddit->sendMessage($username, $subject, $message);
 }
 
 /**
@@ -379,14 +384,14 @@ function redditautomation_send_message($username, $subject, $message) {
  * I'm assuming when you specify to Rules that you want a list<user>, that
  * it will spit out a list of User entities.. but I guess we'll have to try it and find out.
  *
- * @param array $userlist
- * @param string $subject
- * @param string $message
+ * @param array $userlist        
+ * @param string $subject        
+ * @param string $message        
  */
 function redditautomation_send_bulk_message($userlist, $subject, $message) {
-	foreach ( $userlist as $user ) {
-		redditautomation_send_bulk_message ( $user->name, $subject, $message );
-	}
+  foreach ($userlist as $user) {
+    redditautomation_send_bulk_message($user->name, $subject, $message);
+  }
 }
 
 /**
@@ -394,52 +399,51 @@ function redditautomation_send_bulk_message($userlist, $subject, $message) {
  *
  * Action performed by administratively configured user account.
  *
- * @param string $subreddit
- * @param string $title
- * @param string $body
+ * @param string $subreddit        
+ * @param string $title        
+ * @param string $body        
  * @return string either PostID
  * @throws Exception on any error.
  */
-function redditautomation_submit_post($title, $body, $subreddit = null) {
-	if (! $subreddit) {
-		$subreddit = variable_get ( 'redditautomation_default_subreddit', '' );
-		if (! $subreddit) {
-			throw new Exception ( "Unable to submit a post without a subreddit, either set one in the redditautomation admin screen, or pass one to this function." );
-		}
-	}
-	if (! $title || ! $body) {
-		throw new Exception ( "Empty title or body, unable to submit post." );
-	}
-	_redditautomationlog ( "posting story: $title, $body to /r/$subreddit" );
-	// Test user permissions?
-	if (! user_access ( 'redditautomation can post' )) {
-		// drupal_set_message('Access Denied','error');
-		drupal_goto ();
-	}
-
-	$reddit = _redditautomation_get_reddit ();
-
-	// Make a request via their API, note the NULL as second parameter, that is for links only.
-	$response = $reddit->createStory ( $title, NULL, $subreddit, $body );
-
-	// Ok, so we should actually be able to parse the reponse!
-	$id = _redditautomation_clean_response ( $response, $subreddit );
-	return $id;
-
-	/*
-	 * Find our new post and save the ID OLD WAY
-	 * sleep ( 2 );
-	 * $l = $reddit->getListing ( $subreddit, 5 );
-	 * if (variable_get ( 'redditautomation_debugmode' )) {
-	 * if (module_exists ( 'devel' )) {
-	 * dpm ( $response, 'Raw response from Reddit' );
-	 * dpm ( $l, 'Return object from Reddit' );
-	 * }
-	 * _redditautomationlog ( "Post submitted: " . print_r ( $l, true ) );
-	 * }
-	 *
-	 * return _redditautomation_search ( $l->data->children, $title );
-	 */
+function redditautomation_submit_self($title, $body, $subreddit = null) {
+  if (!$subreddit) {
+    $subreddit = variable_get('redditautomation_default_subreddit', '');
+    if (!$subreddit) {
+      throw new Exception("Unable to submit a post without a subreddit, either set one in the redditautomation admin screen, or pass one to this function.");
+    }
+  }
+  if (!$title || !$body) {
+    throw new Exception("Empty title or body, unable to submit post.");
+  }
+  _redditautomationlog("posting story: $title, $body to /r/$subreddit");
+  // Test user permissions?
+  if (!user_access('redditautomation can post')) {
+    // drupal_set_message('Access Denied','error');
+    drupal_goto();
+  }
+  
+  $reddit = _redditautomation_get_reddit();
+  
+  // Make a request via their API, note the NULL as second parameter, that is for links only.
+  $response = $reddit->createStory($title, NULL, $subreddit, $body);
+  
+  // Ok, so we should actually be able to parse the reponse!
+  $id = _redditautomation_clean_response($response, $subreddit);
+  return $id;
+  
+  /*
+   * Find our new post and save the ID OLD WAY
+   * sleep ( 2 );
+   * $l = $reddit->getListing ( $subreddit, 5 );
+   * if (variable_get ( 'redditautomation_debugmode' )) {
+   * if (module_exists ( 'devel' )) {
+   * dpm ( $response, 'Raw response from Reddit' );
+   * dpm ( $l, 'Return object from Reddit' );
+   * }
+   * _redditautomationlog ( "Post submitted: " . print_r ( $l, true ) );
+   * }
+   * return _redditautomation_search ( $l->data->children, $title );
+   */
 }
 
 /**
@@ -447,50 +451,50 @@ function redditautomation_submit_post($title, $body, $subreddit = null) {
  *
  * Action performed by administratively configured user account.
  *
- * @param string $subreddit
- * @param string $title
- * @param string $body
+ * @param string $subreddit        
+ * @param string $title        
+ * @param string $body        
  * @return string either PostID
  * @throws Exception on any error.
  */
 function redditautomation_submit_link($title, $link, $subreddit = null) {
-	if (is_null ( $subreddit )) {
-		$subreddit = variable_get ( 'redditautomation_default_subreddit', '' );
-		if (! $subreddit) {
-			throw new Exception ( "Unable to submit a link without a subreddit, either set one in the redditautomation admin screen, or pass one to this function." );
-		}
-	}
-	if (! $title || ! $link) {
-		throw new Exception ( "Empty title or link, unable to submit post." );
-	}
-	_redditautomationlog ( "posting link: $title, $link to /r/$subreddit" );
-
-	// Test user permissions?
-	if (! user_access ( 'redditautomation can post' )) {
-		// drupal_set_message('Access Denied','error');
-		drupal_goto ();
-	}
-
-	$reddit = _redditautomation_get_reddit ();
-
-	// Make a request via their API, note the NULL as last parameter, that is for stories only.
-	$response = $reddit->createStory ( $title, $link, $subreddit, NULL );
-	// _redditautomationlog ( "Link submitted: " . $response );
-	// Ok, so we should actually be able to parse the reponse!
-	// $id = _redditautomation_clean_response ( $response, $subreddit );
-	// return $id;
-
-	/* Find our new post and save the ID */
-	sleep ( 2 );
-	$l = $reddit->getListing ( $subreddit, 5 );
-	if (variable_get ( 'redditautomation_debugmode' )) {
-		if (module_exists ( 'devel' )) {
-			dpm ( $l, 'Return object from Reddit' );
-		}
-		_redditautomationlog ( "Link submitted: " . print_r ( $l, true ) );
-	}
-
-	return _redditautomation_search ( $l->data->children, $title );
+  if (is_null($subreddit)) {
+    $subreddit = variable_get('redditautomation_default_subreddit', '');
+    if (!$subreddit) {
+      throw new Exception("Unable to submit a link without a subreddit, either set one in the redditautomation admin screen, or pass one to this function.");
+    }
+  }
+  if (!$title || !$link) {
+    throw new Exception("Empty title or link, unable to submit post.");
+  }
+  _redditautomationlog("posting link: $title, $link to /r/$subreddit");
+  
+  // Test user permissions?
+  if (!user_access('redditautomation can post')) {
+    // drupal_set_message('Access Denied','error');
+    drupal_goto();
+  }
+  
+  $reddit = _redditautomation_get_reddit();
+  
+  // Make a request via their API, note the NULL as last parameter, that is for stories only.
+  $response = $reddit->createStory($title, $link, $subreddit, NULL);
+  // _redditautomationlog ( "Link submitted: " . $response );
+  // Ok, so we should actually be able to parse the reponse!
+  $id = _redditautomation_clean_response($response, $subreddit);
+  return $id;
+  
+  /* Find our new post and save the ID */
+  sleep(2);
+  $l = $reddit->getListing($subreddit, 5);
+  if (variable_get('redditautomation_debugmode')) {
+    if (module_exists('devel')) {
+      dpm($l, 'Return object from Reddit');
+    }
+    _redditautomationlog("Link submitted: " . print_r($l, true));
+  }
+  
+  return _redditautomation_search($l->data->children, $title);
 }
 
 /**
@@ -498,184 +502,203 @@ function redditautomation_submit_link($title, $link, $subreddit = null) {
  *
  * Action performed by currently logged in user.
  *
- * @param string $subreddit
- * @param string $title
- * @param string $body
+ * @param string $subreddit        
+ * @param string $title        
+ * @param string $body        
  * @return string either PostID
  * @throws Exception on any error.
  */
 function redditautomation_submit_userpost($subreddit, $title, $body) {
-	return 'Not currently Implemented.';
-
-	// $reddit = _reddit_automation_get_reddit ();
-
-	// TODO: Load the Oauth2 connection used to login
-	// Grab the modhash from the connection and save in the reddit_object
-
-	$response = $reddit->createStory ( $title, NULL, $subreddit, $body );
-
-	/* Find our new post and save the ID */
-	sleep ( 2 );
-	$l = $reddit->getListing ( $mainsubreddit, 5 );
-
-	// Filter list by our user? Probably useful in busy sub..
-	// $l->kind == 't3'; // Post!
-	// $l->data->author == variable_get('redditautomation_username')
-	return _redditautomation_search ( $l->data->children, $title );
+  return 'Not currently Implemented.';
+  
+  // $reddit = _reddit_automation_get_reddit ();
+  
+  // TODO: Load the Oauth2 connection used to login
+  // Grab the modhash from the connection and save in the reddit_object
+  
+  $response = $reddit->createStory($title, NULL, $subreddit, $body);
+  
+  /* Find our new post and save the ID */
+  sleep(2);
+  $l = $reddit->getListing($mainsubreddit, 5);
+  
+  // Filter list by our user? Probably useful in busy sub..
+  // $l->kind == 't3'; // Post!
+  // $l->data->author == variable_get('redditautomation_username')
+  return _redditautomation_search($l->data->children, $title);
 }
 
 /**
  * Submit a comment to a thread
  *
- * @param strig $post_id
- * @param string $comment_body
+ * @param strig $post_id        
+ * @param string $comment_body        
  * @return string $comment_id
  */
 function redditautomation_post_comment($post_id, $comment_body) {
-	if (! $post_id || ! $comment_body) {
-		throw new Exception ( "Unable to post empty comment." );
-	}
-	_redditautomationlog ( "posting comment to $post_id: $comment_body" );
-	$reddit = _redditautomation_get_reddit ();
-	$reddit->addComment ( $post_id, $comment_body );
-	// TODO: Fetch comment_id & return it.
-	sleep ( 2 );
-	// Is this right? Seems stupid..
-	$comments = redditautomation_fetch_comments ( $post_id, null, 1 );
-	// Parse the comment thread and retrieve the id of the comment
-	$ids = _redditautomation_commentsearch ( $comments, $comment_body );
-	// In theory, there should only be one comment in the thread with that exact body.
-	if (variable_get ( 'redditautomation_debugmode' ))
-		_redditautomationlog ( "post-id: " . print_r ( $comments, true ) );
-	return reset ( $ids );
+  if (!$post_id || !$comment_body) {
+    throw new Exception("Unable to post empty comment.");
+  }
+  _redditautomationlog("posting comment to $post_id: $comment_body");
+  $reddit = _redditautomation_get_reddit();
+  $reddit->addComment($post_id, $comment_body);
+  // TODO: Fetch comment_id & return it.
+  sleep(2);
+  // Is this right? Seems stupid..
+  $comments = redditautomation_fetch_comments($post_id, null, 1);
+  // Parse the comment thread and retrieve the id of the comment
+  $ids = _redditautomation_commentsearch($comments, $comment_body);
+  // In theory, there should only be one comment in the thread with that exact body.
+  if (variable_get('redditautomation_debugmode'))
+    _redditautomationlog("post-id: " . print_r($comments, true));
+  return reset($ids);
 }
 
 /**
  * Search for posts
  *
  * @param string $sr
- *        	(Which subreddit to search, defaults to the administratively defined default, or reddit itself)
+ *        (Which subreddit to search, defaults to the administratively defined default, or reddit itself)
  * @param string $string
- *        	(what to search for in title or body of comment)
+ *        (what to search for in title or body of comment)
  * @param int $count
- *        	(defaults to 25 (same as RedditAPI)
+ *        (defaults to 25 (same as RedditAPI)
  * @return array (Either empty, or full of post_id's)
  */
 function redditautomation_fetch_posts($sr = null, $string = null, $count = 25, $id_only = FALSE) {
-	$comments = array ();
-	if (! $sr) {
-		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
-	}
-	_redditautomationlog ( "fetching posts from $sr, looking for \"$string\" want $count posts." );
-
-	$reddit = _redditautomation_get_reddit ();
-	// Reddit API max posts is 100
-	$count = ($count > 100) ? 100 : $count;
-
-	// Fetch posts.
-	$j = $reddit->getListing ( $sr, $count );
-
-	dpm ( $j, 'Raw dump of fetch' );
-
-	// Convert the response (object) into something parsable.. We want the Comment IDs.
-	foreach ( $j->data->children as $c ) {
-		// If we haven't specified a search, skip all the matching and just add them all
-		// Otherwise, check the title for a match.
-		// Only store matches, if we specify a string.
-		if (is_null ( $string ) || preg_match ( '/' . $string . '/i', $c->data->title )) {
-			if ($id_only) {
-				$comments [] = $c->data->name;
-			} else {
-				$comments [] = array (
-						'id' => $c->data->name,
-						'title' => $c->data->title,
-						'url' => isset ( $c->data->url ) ? $c->data->url : '',
-						'raw' => $c->data
-				);
-			}
-		}
-	}
-	if (variable_get ( 'redditautomation_debugmode' ))
-		_redditautomationlog ( "fetched: " . print_r ( $comments, true ) );
-	return $comments;
+  $comments = array();
+  if (!$sr) {
+    $sr = variable_get('redditautomation_default_subreddit', 'reddit');
+  }
+  _redditautomationlog("fetching posts from $sr, looking for \"$string\" want $count posts.");
+  
+  $reddit = _redditautomation_get_reddit();
+  // Reddit API max posts is 100
+  $count = ($count > 100) ? 100 : $count;
+  
+  // Fetch posts.
+  $j = $reddit->getListing($sr, $count);
+  
+  dpm($j, 'Raw dump of fetch');
+  
+  // Convert the response (object) into something parsable.. We want the Comment IDs.
+  foreach ($j->data->children as $c) {
+    // If we haven't specified a search, skip all the matching and just add them all
+    // Otherwise, check the title for a match.
+    // Only store matches, if we specify a string.
+    if (is_null($string) || preg_match('/' . $string . '/i', $c->data->title)) {
+      if ($id_only) {
+        $comments[] = $c->data->name;
+      }
+      else {
+        $comments[] = array(
+          'id' => $c->data->name, 
+          'title' => $c->data->title, 
+          'url' => isset($c->data->url) ? $c->data->url : '', 
+          'raw' => $c->data
+        );
+      }
+    }
+  }
+  if (variable_get('redditautomation_debugmode'))
+    _redditautomationlog("fetched: " . print_r($comments, true));
+  return $comments;
 }
 
 /**
  * ID only array result, otherwise same as fetch_posts.
  *
- * @param string $sr
- * @param string $string
- * @param number $count
+ * @param string $sr        
+ * @param string $string        
+ * @param number $count        
  * @return Ambigous <multitype:, multitype:NULL >
  */
 function redditautomation_fetch_post_ids($sr = null, $string = null, $count = 25) {
-	return redditautomation_fetch_posts ( $sr, $string, $count, TRUE );
+  return redditautomation_fetch_posts($sr, $string, $count, TRUE);
 }
+
 /**
  * Search for comments
  *
- * @param string $post_id
+ * @param string $post_id        
  * @param string $string
- *        	(what to search for in title or body of comment)
+ *        (what to search for in title or body of comment)
  * @param int $depth
- *        	(defaults to 1)
+ *        (defaults to 1)
  * @param string $sr
- *        	(Which subreddit to search, defaults to the administratively defined default, or reddit itself)
+ *        (Which subreddit to search, defaults to the administratively defined default, or reddit itself)
  * @param bool $id_only
- *        	(Whether to create an array of comment_id's or some structured data)
+ *        (Whether to create an array of comment_id's or some structured data)
  * @return array (Either empty, or full of comment_id's)
- *
+ *        
  *         TODO: Other users of this module might appreciate a bit more data being returned
  *         when they search for comments.. not just the ID number.. Like, the data?
  *         We shouldn't really batch select comments by id.. we should be able to enter a
  *         bunch of id's and get those datums back..
  */
 function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $sr = null, $id_only = FALSE) {
-	$comments = array ();
-	if (! $sr) {
-		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
-	}
-
-	$post_id = _redditautomation_clean_id ( $post_id );
-
-	_redditautomationlog ( "fetching comments for $post_id, looking for \"$string\" $depth deep." );
-	$reddit = _redditautomation_get_reddit ();
-	$j = $reddit->getpostcomments ( $sr, $post_id );
-
-	// Convert the response (object) into something parsable.. We want the Comment IDs.
-	foreach ( $j as $d ) {
-		// Need to check any children.
-		$cs = $d->data->children;
-		foreach ( $cs as $c ) {
-			// If we haven't specified a search, skip all the matching and just add them all
-			if (_redditautomation_matches ( $c, $string )) {
-				if ($id_only) {
-					$comments [] = $c->data->name;
-				} else {
-					$comments [] = array (
-							// Might be more useful to other module users if we retrieved MORE data here.
-							'id' => $c->data->name,
-							'permalink' => isset ( $c->data->permalink ) ? $c->data->permalink : '',
-							'html' => isset ( $c->data->body_html ) ? $c->data->body_html : isset ( $c->data->selftext_html ) ? $c->data->selftext_html : '',
-							'text' => isset ( $c->data->body ) ? $c->data->body : isset ( $c->data->selftext ) ? $c->data->selftext : '',
-							'url' => isset ( $c->data->url ) ? $c->data->url : '', // Only first comment on link post will have this.
-							'raw' => $c->data
-					);
-				}
-			}
-		}
-	}
-	if (variable_get ( 'redditautomation_debugmode' )) {
-		if (module_exists ( 'devel' )) {
-			dpm ( $j, 'Return object from Reddit' );
-			dpm ( $comments, 'List of comments' );
-		}
-		_redditautomationlog ( "Fetched comment id's: " . print_r ( $comments, true ) );
-	}
-	return $comments;
+  static $current_depth = 0;
+  $current_depth++;
+  $comments = array();
+  if (!$sr) {
+    $sr = variable_get('redditautomation_default_subreddit', 'reddit');
+  }
+  
+  $post_id = _redditautomation_clean_id($post_id);
+  
+  _redditautomationlog("fetching comments for $post_id, looking for \"$string\" $depth deep.");
+  $reddit = _redditautomation_get_reddit();
+  $j = $reddit->getpostcomments($sr, $post_id);
+  
+  // Convert the response (object) into something parsable.. We want the Comment IDs.
+  foreach ($j as $d) {
+    // Need to check any children.
+    $cs = $d->data->children;
+    foreach ($cs as $c) {
+      // If we haven't specified a search, skip all the matching and just add them all
+      if (_redditautomation_matches($c, $string)) {
+        if ($id_only) {
+          $comments[] = $c->data->name;
+        }
+        else {
+          $comments[] = array(
+            // Might be more useful to other module users if we retrieved MORE data here.
+            'id' => $c->data->name, 
+            'permalink' => property_exists($c->data, 'permalink') ? $c->data->permalink : '', 
+            'html' => property_exists($c->data, 'body_html') ? $c->data->body_html : property_exists($c->data, 'selftext_html') ? $c->data->selftext_html : '', 
+            'text' => property_exists($c->data, 'body') ? $c->data->body : property_exists($c->data, 'selftext') ? $c->data->selftext : '', 
+            'url' => property_exists($c->data, 'url') ? $c->data->url : '',  // Only first comment on link post will
+                                                                            // have this.
+            'raw' => $c->data
+          );
+          
+          if ($depth > $current_depth) {
+            if (property_exists($c->replies)) {
+              // Need to check the replies as they are required to satisfy the depth.
+              $child_comments = redditautomation_fetch_comments($c->data->name, $string, $depth--, $sr, $id_only);
+              // Merge those comments into root.. possibly a better/clearer way..
+              // TODO: see if the heirarchy is required.
+              foreach ($child_comments as $cc) {
+                $comments[] = $cc;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  if (variable_get('redditautomation_debugmode')) {
+    if (module_exists('devel')) {
+      dpm($j, 'Return object from Reddit');
+      dpm($comments, 'List of comments');
+    }
+    _redditautomationlog("Fetched comment id's: " . print_r($comments, true));
+  }
+  return $comments;
 }
+
 function redditautomation_fetch_comment_ids($post_id, $string = null, $depth = 1, $sr = null) {
-	return redditautomation_fetch_comments ( $post_id, $string, $depth, $sr, TRUE );
+  return redditautomation_fetch_comments($post_id, $string, $depth, $sr, TRUE);
 }
 
 /**
@@ -683,39 +706,61 @@ function redditautomation_fetch_comment_ids($post_id, $string = null, $depth = 1
  * this just seems clearer.
  * ALWAYS MATCHES ON NULL STRING!
  *
- * @param object $c
- * @param string $string
+ * Determine if a comment/post matches the specified string.
+ *
+ * Search function uses cases insensitive regular expression parser.. which can be heavy,
+ * so best to use it for simple things, like single words.. however, you could use
+ * expressions like: "\w[:alpha:][0-9]+[acf]{0,3}\w".. could.
+ *
+ * @param object $c        
+ * @param string $string        
  * @return boolean
  */
-function _redditautomation_matches($c, $string) {
-	if (is_null ( $string )) {
-		return TRUE;
-	}
-	if (isset ( $c->data->body )) {
-		if (preg_match ( '/' . $string . '/i', $c->data->body )) {
-			return TRUE;
-		}
-	} elseif (isset ( $c->data->selftext )) {
-		if (preg_match ( '/' . $string . '/i', $c->data->selftext )) {
-			return TRUE;
-		}
-	}
-	return FALSE;
+function _redditautomation_matches($c, $string = null) {
+  if (is_null($string)) {
+    // No filtering on empty string.
+    return TRUE;
+  }
+  if (!property_exists($c, 'data')) {
+    // Bail on having no data property.. we need it for every other check.
+    return FALSE;
+  }
+  // Attempt to match title first.. (faster?)
+  // The available properties are apparently sporadically available.. so we have to check for existence before checking
+  // them..
+  // Otherwise, well, the user's screen or cron log email fills with errors..
+  if (property_exists($c->data, 'title') && preg_match('/' . $string . '/i', $c->data->title)) {
+    return TRUE;
+  }
+  if (property_exists($c->data, 'body') && preg_match('/' . $string . '/i', $c->data->body)) {
+    return TRUE;
+  }
+  if (property_exists($c->data, 'selftext') && preg_match('/' . $string . '/i', $c->data->selftext)) {
+    return TRUE;
+  }
+  if (property_exists($c->data, 'body_html') && preg_match('/' . $string . '/i', $c->data->body_html)) {
+    return TRUE;
+  }
+  
+  return FALSE;
 }
 
 /**
  * Utility function, go through a list of posts, match the title against a known string, return that post's id.
  *
- * @param array $array
- * @param string $string
+ * @param array $array        
+ * @param string $string        
  */
 function _redditautomation_search($array, $string) {
-	foreach ( $array as $children ) {
-		if ($children->data->title == $string)
-			return $children->data->name;
-	}
-	return ''; // Case where search fails.
+  foreach ($array as $children) {
+    if ($children->data->title == $string)
+      return $children->data->name;
+  }
+  return ''; // Case where search fails.
+               // TODO: Perhaps we should throw an exception NotFoundException("No match"). etc.. or just ya know, return
+             // 1 and detect the 1.. ;-|
 }
+
 /**
  * Utility function, runs regex against comment body..
  * case insensitive.
@@ -723,17 +768,17 @@ function _redditautomation_search($array, $string) {
  * Example: "lyrics vote", would match: "lYrIcs votes" etc..
  *
  * @param array $array
- *        	of comments (result of a fetch_comments)
- * @param string $string
+ *        of comments (result of a fetch_comments)
+ * @param string $string        
  * @return array of PostIDs for matching comments.
  */
 function _redditautomation_commentsearch($array, $string) {
-	$matches = array ();
-	foreach ( $array as $children ) {
-		if (preg_match ( '/' . $string . '/i', $children->data->body ))
-			$matches [] = $children->data->name;
-	}
-	return $matches;
+  $matches = array();
+  foreach ($array as $children) {
+    if (preg_match('/' . $string . '/i', $children->data->body))
+      $matches[] = $children->data->name;
+  }
+  return $matches;
 }
 
 /**
@@ -748,24 +793,24 @@ function _redditautomation_commentsearch($array, $string) {
  * @return reddit
  */
 function _redditautomation_get_reddit() {
-	static $reddit = false;
-
-	if (! $reddit) {
-		// _redditautomation_load_api ();
-		$reddit_library = libraries_load ( 'redditapi' );
-		if (! $reddit_library ['installed']) {
-			_redditautomationlog ( "Unable to load the reddit library.", 2 );
-			throw new ErrorException ( "Unable to load the reddit library." );
-		}
-		$u = variable_get ( 'redditautomation_username', '' );
-		$p = variable_get ( 'redditautomation_password', '' );
-		if (! $u || ! $p) {
-			_redditautomationlog ( t ( 'Invalid username/password configuration for Reddit Automation module.' ), 2 );
-			throw new Exception ( "Invalid Username/Password config for Reddit Automation module." );
-		}
-		$reddit = new reddit ( $u, $p );
-	}
-	return $reddit;
+  static $reddit = false;
+  
+  if (!$reddit) {
+    // _redditautomation_load_api ();
+    $reddit_library = libraries_load('redditapi');
+    if (!$reddit_library['installed']) {
+      _redditautomationlog("Unable to load the reddit library.", 2);
+      throw new ErrorException("Unable to load the reddit library.");
+    }
+    $u = variable_get('redditautomation_username', '');
+    $p = variable_get('redditautomation_password', '');
+    if (!$u || !$p) {
+      _redditautomationlog(t('Invalid username/password configuration for Reddit Automation module.'), 2);
+      throw new Exception("Invalid Username/Password config for Reddit Automation module.");
+    }
+    $reddit = new reddit($u, $p);
+  }
+  return $reddit;
 }
 
 /**
@@ -775,188 +820,190 @@ function _redditautomation_get_reddit() {
  * @see http://drupal.stackexchange.com/a/96181
  */
 function _redditautomation_load_api() {
-	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'redditapi' ) : 'sites/all/libraries/redditapi';
-	$client = $lib_path . 'reddit.php';
-	try {
-		// Load the Client (once only)
-		if (! class_exists ( 'reddit' ) && ! @include ($client)) {
-			return NULL;
-		}
-		return TRUE;
-	} catch ( Exception $e ) {
-	}
-	return FALSE;
+  $lib_path = function_exists('libraries_get_path') ? libraries_get_path('redditapi') : 'sites/all/libraries/redditapi';
+  $client = $lib_path . 'reddit.php';
+  try {
+    // Load the Client (once only)
+    if (!class_exists('reddit') && !@include ($client)) {
+      return NULL;
+    }
+    return TRUE;
+  }
+  catch (Exception $e) {
+  }
+  return FALSE;
 }
 
 /**
  * Begin the admin form for Reddit Automation Administration
  */
 function redditautomation_admin_form($form, $form_state) {
-	$form ['help'] = array (
-			'#type' => 'markup',
-			'#markup' => '<p>You need to set at least a site username & password, this
+  $form['help'] = array(
+    '#type' => 'markup', 
+    '#markup' => '<p>You need to set at least a site username & password, this
 			should be a new account just for this site, to act as a "Robot" on your behalf.</p>'
-	);
-	$form ['username'] = array (
-			'#type' => 'textfield',
-			'#default_value' => variable_get ( 'redditautomation_username', '' ),
-			'#title' => t ( 'Reddit Username' ),
-			'#description' => t ( 'A user account from reddit.com.' ),
-			'#required' => TRUE
-	);
-	$form ['password'] = array (
-			'#type' => 'textfield',
-			'#default_value' => variable_get ( 'redditautomation_password', '' ),
-			'#title' => t ( 'Reddit Password' ),
-			'#description' => t ( 'The password for that account.' ),
-			'#required' => TRUE
-	);
-	$form ['subreddit'] = array (
-			'#type' => 'textfield',
-			'#default_value' => variable_get ( 'redditautomation_default_subreddit', '' ),
-			'#title' => t ( "Default Subreddit" ),
-			'#description' => t ( 'If you don\'t want to specify which subreddit for the functions/tools, add one here, and it will be used instead.' )
-	);
-	$form ['debug'] = array (
-			'#type' => 'checkbox',
-			'#title' => t ( 'Enable debug mode (Extra tests/output with devel module).' ),
-			'#description' => t ( 'Logs everything to watchdog.' ),
-			'#default_value' => variable_get ( 'redditautomation_debugmode', 0 )
-	);
-
-	$form ['test'] = array (
-			'#type' => 'fieldset',
-			'#title' => t ( 'Test functions' ),
-			'#description' => t ( 'You have the devel module installed, so you can use this!,
+  );
+  $form['username'] = array(
+    '#type' => 'textfield', 
+    '#default_value' => variable_get('redditautomation_username', ''), 
+    '#title' => t('Reddit Username'), 
+    '#description' => t('A user account from reddit.com.'), 
+    '#required' => TRUE
+  );
+  $form['password'] = array(
+    '#type' => 'textfield', 
+    '#default_value' => variable_get('redditautomation_password', ''), 
+    '#title' => t('Reddit Password'), 
+    '#description' => t('The password for that account.'), 
+    '#required' => TRUE
+  );
+  $form['subreddit'] = array(
+    '#type' => 'textfield', 
+    '#default_value' => variable_get('redditautomation_default_subreddit', ''), 
+    '#title' => t("Default Subreddit"), 
+    '#description' => t('If you don\'t want to specify which subreddit for the functions/tools, add one here, and it will be used instead.')
+  );
+  $form['debug'] = array(
+    '#type' => 'checkbox', 
+    '#title' => t('Enable debug mode (Extra tests/output with devel module).'), 
+    '#description' => t('Logs everything to watchdog.'), 
+    '#default_value' => variable_get('redditautomation_debugmode', 0)
+  );
+  
+  $form['test'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Test functions'), 
+    '#description' => t('You have the devel module installed, so you can use this!,
 					 basically, it dpm\'s the output of each function.
-					All "subreddit" selections use the defaults above.' ),
-			'#collapsible' => TRUE,
-			'#collapsed' => TRUE
-	);
-	if (module_exists ( 'devel' ) && variable_get ( 'redditautomation_debugmode' )) {
-
-		// The available functions in redditautomation.
-		$functions = array (
-				'fetch_posts',
-				'fetch_post_ids',
-				'fetch_comments',
-				'fetch_comment_ids',
-				'post_comment',
-				'send_message',
-				'submit_link',
-				'submit_post'
-		);
-
-		$form ['test'] ['function'] = array (
-				'#type' => 'select',
-				'#title' => t ( 'Function to test' ),
-				'#options' => $functions
-		);
-		$form ['test'] ['user'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( '/u/Username to send a message to. (for PMs)' )
-		);
-		$form ['test'] ['subject'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'Subject/Title (of PM/Link/Post/search)' )
-		);
-		$form ['test'] ['thingid'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'ID of post/comment' )
-		);
-		$form ['test'] ['body'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'Body (of PM/Post)' )
-		);
-		$form ['test'] ['link'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'Link' )
-		);
-		$form ['test'] ['search'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'What to search for' )
-		);
-		$form ['test'] ['quantity'] = array (
-				'#type' => 'textfield',
-				'#title' => t ( 'QTY/Depth: How many/deep to retrieve (within API limits)' )
-		);
-		$form ['test'] ['tests'] = array (
-				'#type' => 'submit',
-				'#value' => t ( 'Test' )
-		);
-	}
-	$form ['submit'] = array (
-			'#type' => 'submit',
-			'#value' => t ( 'Save' )
-	);
-	return $form;
+					All "subreddit" selections use the defaults above.'), 
+    '#collapsible' => TRUE, 
+    '#collapsed' => TRUE
+  );
+  if (module_exists('devel') && variable_get('redditautomation_debugmode')) {
+    
+    // The available functions in redditautomation.
+    $functions = array(
+      'fetch_posts', 
+      'fetch_post_ids', 
+      'fetch_comments', 
+      'fetch_comment_ids', 
+      'post_comment', 
+      'send_message', 
+      'submit_link', 
+      'submit_self'
+    );
+    
+    $form['test']['function'] = array(
+      '#type' => 'select', 
+      '#title' => t('Function to test'), 
+      '#options' => $functions
+    );
+    $form['test']['user'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('/u/Username to send a message to. (for PMs)')
+    );
+    $form['test']['subject'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('Subject/Title (of PM/Link/Post/search)')
+    );
+    $form['test']['thingid'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('ID of post/comment')
+    );
+    $form['test']['body'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('Body (of PM/Post)')
+    );
+    $form['test']['link'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('Link')
+    );
+    $form['test']['search'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('What to search for')
+    );
+    $form['test']['quantity'] = array(
+      '#type' => 'textfield', 
+      '#title' => t('QTY/Depth: How many/deep to retrieve (within API limits)')
+    );
+    $form['test']['tests'] = array(
+      '#type' => 'submit', 
+      '#value' => t('Test')
+    );
+  }
+  $form['submit'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Save')
+  );
+  return $form;
 }
+
 /**
  * Save the settings.
  */
 function redditautomation_admin_form_submit($form, $form_state) {
-	$fsv = $form_state ['values'];
-	variable_set ( 'redditautomation_username', $fsv ['username'] );
-	variable_set ( 'redditautomation_password', $fsv ['password'] );
-	variable_set ( 'redditautomation_default_subreddit', $fsv ['subreddit'] );
-
-	variable_set ( 'redditautomation_debugmode', $fsv ['debug'] );
-
-	_redditautomationlog ( "Configuration updated." );
-
-	if (module_exists ( 'devel' ) && $form_state ['input'] ['op'] == 'Test') {
-		$functions = array (
-				'fetch_posts',
-				'fetch_post_ids',
-				'fetch_comments',
-				'fetch_comment_ids',
-				'post_comment',
-				'send_message',
-				'submit_link',
-				'submit_post'
-		);
-		$function = $functions [$form_state ['input'] ['function']];
-
-		switch ($function) {
-			case 'fetch_posts' :
-				dpm ( redditautomation_fetch_posts ( $fsv ['subreddit'], $fsv ['search'], $fsv ['quantity'] ), t ( 'Fetch Posts' ) );
-				break;
-			case 'fetch_post_ids' :
-				dpm ( redditautomation_fetch_post_ids ( $fsv ['subreddit'], $fsv ['search'], $fsv ['quantity'] ), t ( 'Fetch Posts' ) );
-				break;
-			case 'fetch_comments' :
-				dpm ( redditautomation_fetch_comments ( $fsv ['thingid'], $fsv ['search'], $fsv ['quantity'] ), t ( 'Fetch Comments' ) );
-				break;
-			case 'fetch_comment_ids' :
-				dpm ( redditautomation_fetch_comment_ids ( $fsv ['thingid'], $fsv ['search'], $fsv ['quantity'] ), t ( 'Fetch Comments' ) );
-				break;
-			case 'post_comment' :
-				dpm ( redditautomation_post_comment ( $fsv ['thingid'], $fsv ['body'] ), t ( 'Post comment' ) );
-				break;
-			case 'send_message' :
-				dpm ( redditautomation_send_message ( $fsv ['user'], $fsv ['subject'], $fsv ['body'] ), t ( 'Send Message' ) );
-				break;
-			case 'submit_link' :
-				dpm ( redditautomation_submit_link ( $fsv ['subject'], $fsv ['link'] ), t ( 'Submit link' ) );
-				break;
-			case 'submit_post' :
-				dpm ( redditautomation_submit_post ( $fsv ['body'], $fsv ['body'] ), t ( 'Submit post' ) );
-				break;
-		}
-	}
+  $fsv = $form_state['values'];
+  variable_set('redditautomation_username', $fsv['username']);
+  variable_set('redditautomation_password', $fsv['password']);
+  variable_set('redditautomation_default_subreddit', $fsv['subreddit']);
+  
+  variable_set('redditautomation_debugmode', $fsv['debug']);
+  
+  _redditautomationlog("Configuration updated.");
+  
+  if (module_exists('devel') && $form_state['input']['op'] == 'Test') {
+    $functions = array(
+      'fetch_posts', 
+      'fetch_post_ids', 
+      'fetch_comments', 
+      'fetch_comment_ids', 
+      'post_comment', 
+      'send_message', 
+      'submit_link', 
+      'submit_self'
+    );
+    $function = $functions[$form_state['input']['function']];
+    
+    switch ($function) {
+      case 'fetch_posts':
+        dpm(redditautomation_fetch_posts($fsv['subreddit'], $fsv['search'], $fsv['quantity']), t('Fetch Posts'));
+        break;
+      case 'fetch_post_ids':
+        dpm(redditautomation_fetch_post_ids($fsv['subreddit'], $fsv['search'], $fsv['quantity']), t('Fetch Posts'));
+        break;
+      case 'fetch_comments':
+        dpm(redditautomation_fetch_comments($fsv['thingid'], $fsv['search'], $fsv['quantity']), t('Fetch Comments'));
+        break;
+      case 'fetch_comment_ids':
+        dpm(redditautomation_fetch_comment_ids($fsv['thingid'], $fsv['search'], $fsv['quantity']), t('Fetch Comments'));
+        break;
+      case 'post_comment':
+        dpm(redditautomation_post_comment($fsv['thingid'], $fsv['body']), t('Post comment'));
+        break;
+      case 'send_message':
+        dpm(redditautomation_send_message($fsv['user'], $fsv['subject'], $fsv['body']), t('Send Message'));
+        break;
+      case 'submit_link':
+        dpm(redditautomation_submit_link($fsv['subject'], $fsv['link']), t('Submit link'));
+        break;
+      case 'submit_self':
+        dpm(redditautomation_submit_self($fsv['body'], $fsv['body']), t('Submit post'));
+        break;
+    }
+  }
 }
 
 /**
  * Utility function to log things, checks level, if greater than 1, will
  * always log, otherwise depends on debug being set in admin.
  *
- * @param string $text
- * @param number $level
+ * @param string $text        
+ * @param number $level        
  */
 function _redditautomationlog($text, $level = 1) {
-	if ($level > 1 || variable_get ( 'redditautomation_debugmode' )) {
-		watchdog ( 'redditautomation', $text );
-	}
+  if ($level > 1 || variable_get('redditautomation_debugmode')) {
+    watchdog('redditautomation', $text);
+  }
 }
 
 /**
@@ -965,15 +1012,16 @@ function _redditautomationlog($text, $level = 1) {
  * and something indicates the id number.
  * We know what we want, so we need to strip the t3_ part.
  *
- * @param unknown $id
+ * @param unknown $id        
  */
 function _redditautomation_clean_id($id) {
-	return preg_replace ( '/[a-z][0-9]_/', '', $id );
+  return preg_replace('/[a-z][0-9]_/', '', $id);
 }
+
 function _redditautomation_clean_response($response, $subreddit) {
-	// need to strip out: http://www.reddit.com/r/$subreddit/comments/it3f3/$post_title/
-	$last_part = str_replace ( 'http://www.reddit.com/r/' . $subreddit . '/comments/', '', $response );
-	// Now, we strip the last bits.
-	$bits = explode ( '/', $last_part );
-	return $bits [0]; // we just want the id.
+  // need to strip out: http://www.reddit.com/r/$subreddit/comments/it3f3/$post_title/
+  $last_part = str_replace('http://www.reddit.com/r/' . $subreddit . '/comments/', '', $response);
+  // Now, we strip the last bits.
+  $bits = explode('/', $last_part);
+  return $bits[0]; // we just want the id.
 }
