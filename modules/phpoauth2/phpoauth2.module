@@ -8,7 +8,7 @@ function phpoauth2_libraries_info() {
 	$libraries ['phpoauth2'] = array (
 			'name' => 'Light PHP wrapper for the OAuth 2.0',
 			'vendor url' => 'https://github.com/adoy/PHP-OAuth2',
-			'download url' => 'https://github.com/adoy/PHP-OAuth2.git',
+			'download url' => 'https://github.com/adoy/PHP-OAuth2/archive/1.3.0.tar.gz',
 			'version arguments' => array (
 					'file' => 'src/OAuth2/Client.php',
 					'pattern' => '/Version ([.\d]+)/i',
@@ -16,7 +16,9 @@ function phpoauth2_libraries_info() {
 			),
 			'files' => array (
 					'php' => array (
-							'src/OAuth2/Client.php'
+							'src/OAuth2/Client.php',
+							'src/OAuth2/GrantType/IGrantType.php',
+							'src/OAuth2/GrantType/AuthorizationCode.php'
 					)
 			)
 	);

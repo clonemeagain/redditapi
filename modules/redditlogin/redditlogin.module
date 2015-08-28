@@ -28,7 +28,7 @@ function redditlogin_block_view($delta = '') {
 	switch ($delta) {
 		case 'redditlogin_login_form' :
 			{
-				$block ['title'] = variable_get ( 'redditlogin_block_title', '' );
+				$block ['title'] = '';
 				$block ['content'] = variable_get ( 'redditlogin_block_text', '' );
 			}
 			break;
@@ -93,22 +93,15 @@ function redditlogin_menu() {
 function redditlogin_block_config_form($form, &$form_state) {
 	$form ['help'] = array (
 			'#type' => 'markup',
-			'#markup' => '<h2>Login Block Configuration</h2>'
-	);
-	$form ['title'] = array (
-			'#type' => 'textfield',
-			'#title' => 'Set block Title',
-			'#value' => variable_get ( 'redditlogin_block_title', 'Login with Reddit' )
+			'#markup' => '<h2>Login Block Configuration</h2>
+			<p>Configure the title in normal ' . l ( 'Block Config', 'admin/structure/block/manage/redditlogin/redditlogin_login_form/configure' ) . '</p>
+			<p>Remember: restrict block visibility to "Anonymous User" role only. </p>'
 	);
 	$form ['text'] = array (
 			'#type' => 'text_format',
 			'#format' => 'full_html',
 			'#title' => 'Set block HTML',
 			'#value' => variable_get ( 'redditlogin_block_text', '' )
-	);
-	$form ['link'] = array (
-			'#type' => 'markup',
-			'#markup' => '<p>' . l ( 'Place block in Theme', 'admin/structure/block/manage/redditlogin/redditlogin_login_form/configure' ) . '</p>'
 	);
 	$form ['back'] = array (
 			'#type' => 'submit',
@@ -135,17 +128,8 @@ function redditlogin_block_config_form_validate($form, &$form_state) {
 	}
 }
 function redditlogin_block_config_form_submit($form, &$form_state) {
-	// Save the data.
-	if (isset ( $form_state ['values'] ['title'] ) && $form_state ['values'] ['title']) {
-		$t = $form_state ['values'] ['title'];
-		variable_set ( 'redditlogin_block_title', $t );
-		drupal_set_message ( 'Set the block title to: ' . $t );
-	}
-	if (isset ( $form_state ['values'] ['text'] ['value'] ) && $form_state ['values'] ['text'] ['value']) {
-		$text = $form_state ['values'] ['text'] ['value'];
-		variable_set ( 'redditlogin_block_text', $text );
-		drupal_set_message ( "Set the block html." );
-	}
+	variable_set ( 'redditlogin_block_text', $form_state ['values'] ['text'] ['value'] );
+	drupal_set_message ( "Set the block html." );
 }
 
 /**
@@ -157,12 +141,13 @@ function redditlogin_block_config_form_submit($form, &$form_state) {
 function redditlogin_login_config_form($form, &$form_state) {
 
 	// TODO: Verify library is loaded, display status of library code, otherwise, display instructions to download library.
-	//$lib = drupal_get_library ( 'phpoauth2' );
+	// $lib = drupal_get_library ( 'phpoauth2' );
 	$form ['help'] = array (
 			'#type' => 'markup',
 			'#markup' => '<h2>' . t ( 'Configure Reddit login' ) . '</h2>
-			<p>' . t ( 'Uses <a href="@url">Reddit.com</a>\'s Oauth2 client authentication to login users.' ) . '</p>'// . '<p>' . t ( 'Library detected:' ) . print_r ( $lib ) . '</p>'
-	);
+			<p>' . t ( 'Uses <a href="@url">Reddit.com</a>\'s Oauth2 client authentication to login users.' ) . '</p>'
+	); // . '<p>' . t ( 'Library detected:' ) . print_r ( $lib ) . '</p>'
+
 
 	$form ['create_on_new_user'] = array (
 			'#type' => 'checkbox',
@@ -270,7 +255,7 @@ function redditlogin_login_callback() {
 	// We don't assume that any other reddit module is available, id's must be set in module admin.
 	$clientId = variable_get ( 'redditlogin_client_id', '' );
 	$clientSecret = variable_get ( 'redditlogin_client_secret', '' );
-	$redirectUrl = variable_get ( 'redditlogin_redirect_url', '' );
+	$redirect_url = variable_get ( 'redditlogin_redirect_url', '' );
 	$authorize_url = variable_get ( 'redditlogin_authorize_url', '' );
 	$access_token_url = variable_get ( 'redditlogin_access_token_url', '' );
 	$user_url = variable_get ( 'redditlogin_user_url', '' );
@@ -340,14 +325,13 @@ function redditlogin_login_success_callback() {
 			'state' => $_GET ['state']
 	);
 
-	$response = $client->getAccessToken ( $accessTokenUrl, "authorization_code", $params );
+	$response = $client->getAccessToken ( $access_token_url, 'authorization_code', $params );
 	if (! is_array ( $response ['result'] )) {
 		fail ( "Invalid token response.." );
 	}
 	$client->setAccessToken ( $response ["result"] ["access_token"] );
 	$client->setAccessTokenType ( OAuth2\Client::ACCESS_TOKEN_BEARER );
 
-	$user_url = variable_get ( 'redditlogin_user_url' );
 	// Set the user_agent for the reddit-ing.. for Reddit's servers to receive.
 	// By using the site's url, reddit will know that it's not just us hammering them,
 	// However, by also including our project identifier, they can tell us to change if we are doing something wrong.
@@ -358,6 +342,10 @@ function redditlogin_login_success_callback() {
 
 	// Grab the name that Reddit authenticated.
 	$name = isset ( $response ['result'] ['name'] ) ? $response ["result"] ["name"] : false;
+
+	if (! $name) {
+		throw new ErrorException ( "Invalid response from Reddit.. that's all we know." );
+	}
 
 	_redditlogin_user ( $name );
 }
@@ -447,23 +435,30 @@ function _redditlogin_create_user($name) {
 	if (! $name) {
 		throw new Exception ( "Name is empty." );
 	}
+	global $cookie_domain;
+
 	$user = entity_create ( 'user', array () );
-	// make a spoofed email address..
-	$fake_email = $name . '.' . random ( 4 ) . '@localhost.local';
+	// make a spoofed email address.
+	$fake_email = $name . '.' . _redditlogin_random ( 4 ) . '@' . $cookie_domain;
 
 	$user->name = $name; // login same as reddit
 	$user->status = 1; // Enable the user by default.
 	                   // Set nescessary role to let the user log in.
-	$user->roles = array_merge ( $roles, array (
+	$user->roles =  array (
 			DRUPAL_AUTHENTICATED_RID
-	) );
+	);
 	// Set e-mail for lost password procedure
 	$user->init = $fake_email;
 	$user->mail = $fake_email;
 	// Set hashed password, user will never know this password, but we can use "No current password" module to allow them to change it without knowing it.
-	$user->pass = user_hash_password ( random ( 10 ) );
+	// Need to load password.inc to use this function.. of course.
+	module_load_include ( 'inc', 'content', 'includes/password' );
+	$user->pass = user_hash_password ( _redditlogin_random ( 10 ) );
 
 	return user_save ( $user );
+}
+function _redditlogin_random($length) {
+	return substr ( str_shuffle ( 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ), 4, $length );
 }
 
 /**
@@ -472,17 +467,12 @@ function _redditlogin_create_user($name) {
  * @return NULL|boolean
  */
 function _redditlogin_load_oauth_client() {
-	$lib_path = function_exists ( 'libraries_get_path' ) ? libraries_get_path ( 'phpoauth2' ) : 'sites/all/libraries/phpoauth2';
-	$client = $lib_path . 'src/OAuth2/Client.php';
-	try {
-		// Load the Client (once only)
-		if (! class_exists ( 'OAuth2\Client' ) && ! @include ($client)) {
-			return NULL;
-		}
-		return TRUE;
-	} catch ( Exception $e ) {
+	$library = libraries_load ( 'phpoauth2' );
+	if (! $library ['installed']) {
+		watchdog ( 'redditlogin', "Unable to load the PHP Oauth2 library.", $library, 'error' );
+		throw new ErrorException ( "Unable to load the PHP Oauth2 library." );
 	}
-	return FALSE;
+	return TRUE;
 }
 
 /**
@@ -498,7 +488,7 @@ function _redditlogin_fail_oauth() {
  *
  * @return string
  */
-function _redditlogin_get_code() {
+function _redditlogin_get_code($length = 20) {
 	if (isset ( $_SESSION ['redditlogin'] )) {
 		return $_SESSION ['redditlogin'];
 	}
@@ -508,6 +498,9 @@ function _redditlogin_get_code() {
 		$code .= $c [rand ( 0, strlen ( $c ) - 1 )];
 	}
 	$_SESSION ['redditlogin'] = $code;
+	watchdog ( 'redditlogin', 'Code: @code', array (
+			'code' => $code
+	), WATCHDOG_DEBUG );
 	return $code;
 }
 function _redditlogin_check_code($code) {
