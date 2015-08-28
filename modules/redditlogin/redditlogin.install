@@ -9,21 +9,23 @@
  */
 function redditlogin_requirements($phase) {
 	$requirements = array ();
-	if ($phase == 'runtime') {
+	if ($phase == 'runtime' || $phase == 'install') {
 		if (($library = libraries_detect ( 'phpoauth2' )) && ! empty ( $library ['installed'] )) {
 			// The library is installed. Awesome!
-			// Try and load it..
 			try {
-				drupal_get_library ( 'phpoauth2' );
+				// Attempt to load the library. Used to generate the Status Report.
+				$library = libraries_load ( 'phpoauth2' );
+				new OAuth2\GrantType\AuthorizationCode ();
 				// We should be ok at this point..
 				$requirements ['phpoauth2'] = array (
 						'title' => t ( 'PHP Oauth2 Library found and tests ok.' ),
-						'severity' => REQUIREMENT_INFO
+						'value' => $library['version'],
+						'severity' => REQUIREMENT_OK
 				);
 			} catch ( Exception $e ) {
 				watchdog ( 'redditlogin', $e->getMessage () );
 				$requirements ['phpoauth2'] = array (
-						'description' => 'An error was detected trying to load the PHP Oauth2 Library.',
+						'title' => 'An error was detected trying to load the PHP Oauth2 Library.',
 						'severity' => REQUIREMENT_ERROR
 				);
 			}
@@ -32,12 +34,11 @@ function redditlogin_requirements($phase) {
 			$requirements ['reddit_library'] = array (
 					'title' => t ( 'Redditlogin requires the library "phpoauth2"' ),
 					'value' => '
-					Install phpoauth2 module and then read <a href="https://www.drupal.org/node/1440066">HOWTO</a>,
-					library found here: <a href="https://github.com/adoy/PHP-OAuth2">https://github.com/adoy/PHP-OAuth2</a>
+					Install phpoauth2 library module and then read <a href="https://www.drupal.org/node/1440066">HOWTO</a>,
+					actual library found here: <a href="https://github.com/adoy/PHP-OAuth2/archive/1.3.0.tar.gz">https://github.com/adoy/PHP-OAuth2</a>
 					',
-					'severity' => REQUIREMENT_ERROR
+					'severity' => REQUIREMENT_ERROR,
 			);
-			// 'weight' => -1000, // Uncomment to put at top of list.
 		}
 	}
 	return $requirements;

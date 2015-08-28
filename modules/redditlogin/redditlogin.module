@@ -424,6 +424,10 @@ function _redditlogin_user($name) {
 /**
  * Create a user account knowing just a name.
  *
+ * Probably not the best way to do this.. but it works.
+ *
+ * Strongly influenced by the Devel module.
+ *
  * @param string $name
  * @return stdClass $user
  * @throws Exception on empty $name
@@ -433,12 +437,12 @@ function _redditlogin_create_user($name) {
 	// I'm guessing reddit does too.. couldn't see anywhere.
 	// But we can't let empty account names become valid.. ever.
 	if (! $name) {
-		throw new Exception ( "Name is empty." );
+		throw new Exception ( "Name cannot be empty." );
 	}
 	global $cookie_domain;
 
 	$user = entity_create ( 'user', array () );
-	// make a spoofed email address.
+	// make a spoofed email address using the domain name of the server. ;)
 	$fake_email = $name . '.' . _redditlogin_random ( 4 ) . '@' . $cookie_domain;
 
 	$user->name = $name; // login same as reddit
@@ -451,12 +455,18 @@ function _redditlogin_create_user($name) {
 	$user->init = $fake_email;
 	$user->mail = $fake_email;
 	// Set hashed password, user will never know this password, but we can use "No current password" module to allow them to change it without knowing it.
-	// Need to load password.inc to use this function.. of course.
+	// Need to load core include/password.inc to use user_hash_password function.. of course.
 	module_load_include ( 'inc', 'content', 'includes/password' );
 	$user->pass = user_hash_password ( _redditlogin_random ( 10 ) );
 
 	return user_save ( $user );
 }
+
+/**
+ * Utility function to generate a random string.
+ * @param unknown $length
+ * @return string
+ */
 function _redditlogin_random($length) {
 	return substr ( str_shuffle ( 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ), 4, $length );
 }

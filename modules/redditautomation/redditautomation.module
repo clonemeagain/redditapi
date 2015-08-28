@@ -998,6 +998,10 @@ function _redditautomation_clean_id($id) {
 }
 
 function _redditautomation_clean_response($response, $subreddit) {
+	if(is_object($response)){
+		dpm($response,'Reddit response that was supposed to be a pemanlink!');
+		return 'error';
+	}
   // need to strip out: http://www.reddit.com/r/$subreddit/comments/it3f3/$post_title/
   $last_part = str_replace('http://www.reddit.com/r/' . $subreddit . '/comments/', '', $response);
   // Now, we strip the last bits.

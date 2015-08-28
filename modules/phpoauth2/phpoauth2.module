@@ -11,8 +11,8 @@ function phpoauth2_libraries_info() {
 			'download url' => 'https://github.com/adoy/PHP-OAuth2/archive/1.3.0.tar.gz',
 			'version arguments' => array (
 					'file' => 'src/OAuth2/Client.php',
-					'pattern' => '/Version ([.\d]+)/i',
-					'lines' => 30
+					'pattern' => '/version     ([\.\d]+)/i', // * @version     1.3.1-dev
+					'lines' => 25
 			),
 			'files' => array (
 					'php' => array (
