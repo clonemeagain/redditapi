@@ -82,6 +82,7 @@ class reddit {
 		$response = $this->runCurl ( $urlSubmit, $postData );
 		return $response;
 
+		// ?? What is the point of this?
 		if ($response->jquery [18] [3] [0] == "that link has already been submitted") {
 			return $response->jquery [18] [3] [0];
 		}
