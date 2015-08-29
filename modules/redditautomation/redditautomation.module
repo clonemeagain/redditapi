@@ -601,12 +601,7 @@ function redditautomation_fetch_posts($sr = null, $string = null, $count = 100, 
 			if ($id_only) {
 				$comments [] = $c->data->name;
 			} else {
-				$comments [] = array (
-						'id' => $c->data->name,
-						'title' => $c->data->title,
-						'url' => isset ( $c->data->url ) ? $c->data->url : '',
-						'raw' => $c->data
-				);
+				$comments [] = _redditautomation_parse_comment ( $c );
 			}
 		}
 	}
@@ -654,9 +649,9 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
 	}
 
-	$post_id = _redditautomation_clean_id ( $post_id );
-
 	_redditautomationlog ( "fetching comments for $post_id, looking for \"$string\" $depth deep." );
+
+	$post_id = _redditautomation_clean_id ( $post_id );
 	$reddit = _redditautomation_get_reddit ();
 	$j = $reddit->getpostcomments ( $sr, $post_id );
 
@@ -666,20 +661,12 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 		$cs = $d->data->children;
 		foreach ( $cs as $c ) {
 			// If we haven't specified a search, skip all the matching and just add them all
+			// This matches title/body/author
 			if (_redditautomation_matches ( $c, $string )) {
 				if ($id_only) {
 					$comments [] = $c->data->name;
 				} else {
-					$comments [] = array (
-							// Might be more useful to other module users if we retrieved MORE data here.
-							'id' => $c->data->name,
-							'permalink' => property_exists ( $c->data, 'permalink' ) ? $c->data->permalink : '',
-							'html' => property_exists ( $c->data, 'body_html' ) ? $c->data->body_html : property_exists ( $c->data, 'selftext_html' ) ? $c->data->selftext_html : '',
-							'text' => property_exists ( $c->data, 'body' ) ? $c->data->body : property_exists ( $c->data, 'selftext' ) ? $c->data->selftext : '',
-							'url' => property_exists ( $c->data, 'url' ) ? $c->data->url : '', // Only first comment on link post will
-							                                                                   // have this.
-							'raw' => $c->data
-					);
+					$comments [] = _redditautomation_parse_comment ( $c );
 
 					if ($depth > $current_depth) {
 						if (property_exists ( $c->replies )) {
@@ -707,6 +694,43 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 }
 function redditautomation_fetch_comment_ids($post_id, $string = null, $depth = 1, $sr = null) {
 	return redditautomation_fetch_comments ( $post_id, $string, $depth, $sr, TRUE );
+}
+/**
+ * Utility function, converts a RedditComment, into an array.
+ *
+ * @param stdClass $c
+ * @param boolean $include_raw
+ *        	(Whether to include the whole original as 'raw')
+ * @return array
+ */
+function _redditautomation_parse_comment($c, $include_raw = false) {
+	$return = array (
+			// Might be more useful to other module users if we retrieved MORE data here.
+			'id' => $c->data->name,
+			'author' => $c->data->author,
+			'permalink' => property_exists ( $c->data, 'permalink' ) ? $c->data->permalink : ''
+	);
+	// We don't care about the Reddit Formatted text.. we just want the actual text.
+	if (property_exists ( $c->data, 'selftext' )) {
+		$return ['text'] = $c->data->selftext;
+	} elseif (property_exists ( $c->data, 'body' )) {
+		$return ['text'] = $c->data->body;
+	}
+	// The 'url' is the ACTUAL url if a Link post, otherwise it's the link to the permalink..
+	if (property_exists ( $c->data, 'domain' )) {
+		if (stripos ( $c->data->domain, 'self.', 0 ) === 0) {
+			// Self posts have domain beginning self.SUBREDDIT
+			$return ['url'] = FALSE;
+		} else {
+			// Non-self posts have a URL.. because they have a link to something. ;-)
+			$return ['url'] = property_exists ( $c->data, 'url' ) ? $c->data->url : '';
+		}
+	}
+
+	if ($include_raw) {
+		$return ['raw'] = $c; // Do we need this?
+	}
+	return $return;
 }
 
 /**
@@ -746,7 +770,7 @@ function _redditautomation_matches($c, $string = null) {
 	if (property_exists ( $c->data, 'selftext' ) && preg_match ( '/' . $string . '/i', $c->data->selftext )) {
 		return TRUE;
 	}
-	if (property_exists ( $c->data, 'body_html' ) && preg_match ( '/' . $string . '/i', $c->data->body_html )) {
+	if (property_exists ( $c->data, 'author' ) && preg_match ( '/' . $string . '/i', $c->data->author )) {
 		return TRUE;
 	}
 
@@ -801,8 +825,11 @@ function _redditautomation_commentsearch($array, $string) {
  * @throws Exception
  * @return reddit
  */
-function _redditautomation_get_reddit() {
+function _redditautomation_get_reddit($readonly = false) {
 	static $reddit = FALSE;
+	if ($readonly) {
+		return new reddit ( false, false );
+	}
 
 	if (! $reddit) {
 		// _redditautomation_load_api ();
@@ -934,14 +961,15 @@ function redditautomation_admin_form_submit($form, $form_state) {
 	variable_set ( 'redditautomation_username', $fsv ['username'] );
 	variable_set ( 'redditautomation_password', $fsv ['password'] );
 	variable_set ( 'redditautomation_default_subreddit', $fsv ['subreddit'] );
-
 	variable_set ( 'redditautomation_debugmode', $fsv ['debug'] );
 
 	// Note this update message only logged if debugmode on. ;-)
 	_redditautomationlog ( "Configuration updated." );
 
 	if (module_exists ( 'devel' ) && $form_state ['input'] ['op'] == 'Test') {
-		switch ($form_state ['input'] ['function']) {
+		$func = $form_state ['input'] ['function'];
+		_redditautomationlog ( "Running test function: $func" );
+		switch ($func) {
 			case 'fetch_posts' :
 				dpm ( redditautomation_fetch_posts ( $fsv ['subreddit'], $fsv ['search'], $fsv ['quantity'] ), t ( 'Fetch Posts' ) );
 				break;
@@ -1003,7 +1031,7 @@ function _redditautomation_clean_response($response, $subreddit) {
 		$response = $response->jquery [10] [3] [0];
 	}
 	_redditautomationlog ( "Cleaning $response" );
-	// need to strip out: http://www.reddit.com/r/$subreddit/comments/it3f3/$post_title/
+	// need to capture the it3f3 part of: http://www.reddit.com/r/$subreddit/comments/it3f3/$post_title/
 	$id = array ();
 	$bits = '';
 	if (preg_match ( '/\/r\/[\w]+\/comments\/([\w]+)\//i', $response, $id ) === 1) {

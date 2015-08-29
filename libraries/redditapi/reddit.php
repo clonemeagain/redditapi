@@ -311,7 +311,7 @@ class reddit {
 	 *        	The subreddit name. Ex: technology, limit (integer): The number of
 	 *        	comments to gather
 	 */
-	public function getpostcomments($sr, $postID, $limit = 5) {
+	public function getpostcomments($sr, $postID, $limit = 1000) {
 		$limit = (isset ( $limit )) ? "?limit=" . $limit : "";
 		if ($sr == 'home' || $sr == 'reddit' || ! isset ( $sr )) {
 			$urlListing = "http://www.reddit.com/.json{$limit}";
