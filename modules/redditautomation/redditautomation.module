@@ -493,7 +493,17 @@ function redditautomation_submit_link($title, $link, $subreddit = null) {
 	// _redditautomationlog ( "Link submitted: " . $response );
 	// Ok, so we should actually be able to parse the reponse!
 	$id = _redditautomation_clean_response ( $response, $subreddit );
-	return $id;
+
+	// Apparently Rules likes things in Arrays, keyed to the thing you put as the PROVIDES.. :-(
+	// eg: from docs
+	// Each returned value in the array must be keyed with the exact machine name
+	// specified in the action's description in hook_rules_action_info.
+	// return array(
+	// 'number_of_results' => count($results),
+	// );
+	return array (
+			'id' => $id
+	);
 
 	/* Find our new post and save the ID */
 	sleep ( 2 );
@@ -562,7 +572,9 @@ function redditautomation_post_comment($post_id, $comment_body) {
 	// In theory, there should only be one comment in the thread with that exact body.
 	if (variable_get ( 'redditautomation_debugmode' ))
 		_redditautomationlog ( "post-id: " . print_r ( $comments, true ) );
-	return reset ( $ids );
+	return array (
+			'id' => reset ( $ids )
+	);
 }
 
 /**
@@ -576,7 +588,7 @@ function redditautomation_post_comment($post_id, $comment_body) {
  *        	(defaults to 25 (same as RedditAPI)
  * @return array (Either empty, or full of post_id's)
  */
-function redditautomation_fetch_posts($sr = null, $string = null, $count = 100, $id_only = FALSE) {
+function redditautomation_fetch_posts($sr = null, $string = null, $count = 25, $id_only = FALSE) {
 	$comments = array ();
 	if (! $sr) {
 		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
@@ -607,7 +619,9 @@ function redditautomation_fetch_posts($sr = null, $string = null, $count = 100, 
 	}
 	if (variable_get ( 'redditautomation_debugmode' ))
 		_redditautomationlog ( "fetched: " . print_r ( $comments, true ) );
-	return $comments;
+	return array (
+			'id_list' => $comments
+	);
 }
 
 /**
@@ -690,7 +704,9 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 		}
 		_redditautomationlog ( "Fetched comment id's: " . print_r ( $comments, true ) );
 	}
-	return $comments;
+	return array (
+			'id_list' => $comments
+	);
 }
 function redditautomation_fetch_comment_ids($post_id, $string = null, $depth = 1, $sr = null) {
 	return redditautomation_fetch_comments ( $post_id, $string, $depth, $sr, TRUE );
