@@ -175,7 +175,7 @@ function redditautomation_rules_action_info() {
 					)
 			),
 			// Expose the Fetch Comments function via Rules
-			'redditautomation_fetch_comments' => array (
+			'redditautomation_fetch_comments_rule_wrapper' => array (
 					'label' => t ( 'Fetch Comments' ),
 					'group' => t ( 'Reddit' ),
 					'parameter' => array (
@@ -205,7 +205,7 @@ function redditautomation_rules_action_info() {
 					)
 			),
 			// Expose the Fetch Comment IDs function via Rules
-			'redditautomation_fetch_comment_ids' => array (
+			'redditautomation_fetch_comment_ids_rule_wrapper' => array (
 					'label' => t ( 'Fetch Comment IDs' ),
 					'group' => t ( 'Reddit' ),
 					'parameter' => array (
@@ -229,19 +229,20 @@ function redditautomation_rules_action_info() {
 					),
 					'provides' => array (
 							'id_list' => array (
-									'type' => 'list<text>',
+									'type' => 'list<string>',
 									'label' => t ( 'A list of comment_ids' )
 							)
 					)
 			),
 			// Expose the Fetch Posts function via Rules
-			'redditautomation_fetch_posts' => array (
+			'redditautomation_fetch_posts_rule_wrapper' => array (
 					'label' => t ( 'Fetch Posts' ),
 					'group' => t ( 'Reddit' ),
 					'parameter' => array (
 							'sr' => array (
 									'type' => 'text',
 									'label' => t ( 'Subreddit' ),
+									'optional' => TRUE,
 									'description' => t ( 'machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.' )
 							),
 							'string' => array (
@@ -265,13 +266,14 @@ function redditautomation_rules_action_info() {
 					)
 			),
 			// Expose the Fetch Post IDs function via Rules
-			'redditautomation_fetch_post_ids' => array (
+			'redditautomation_fetch_post_ids_rule_wrapper' => array (
 					'label' => t ( 'Fetch Post IDs' ),
 					'group' => t ( 'Reddit' ),
 					'parameter' => array (
 							'sr' => array (
 									'type' => 'text',
 									'label' => t ( 'Subreddit' ),
+									'optional' => TRUE,
 									'description' => t ( 'machine name of the reddit that has the posts, like: /r/gameofbands, you would enter "gameofbands". Defaults to the administratively defined subreddit.' )
 							),
 							'string' => array (
@@ -370,7 +372,7 @@ function redditautomation_posting_access_callback() {
 function redditautomation_send_message($username, $subject, $message) {
 	$reddit = _redditautomation_get_reddit ();
 
-	// Strip of preceeding /u/ if present
+	// Strip preceeding /u/ if present
 	$username = str_replace ( '/u/', '', $username );
 
 	_redditautomationlog ( "posting message: $subject to $username" );
@@ -406,6 +408,17 @@ function redditautomation_send_bulk_message($userlist, $subject, $message) {
  * @throws Exception on any error.
  */
 function redditautomation_submit_self($title, $body, $subreddit = null) {
+
+	// TODO: Verify that action is being performed by site-admin?
+	if (! user_access ( 'administer site configuration' )) {
+		watchdog ( 'redditautomation', 'Failed attempt at submit post to reddit. !title => !body to /r/!subreddit.', array (
+				'!title' => $title,
+				'!body' => $body,
+				'!subreddit' => $subreddit
+		), WATCHDOG_ERROR );
+		return;
+	}
+
 	if (! $subreddit) {
 		$subreddit = variable_get ( 'redditautomation_default_subreddit', '' );
 		if (! $subreddit) {
@@ -433,7 +446,9 @@ function redditautomation_submit_self($title, $body, $subreddit = null) {
 		throw new Exception ( "Invalid response, submission in indeterminate state." );
 	}
 	_redditautomationlog ( "posting self: id = $id" );
-	return $id;
+	return array (
+			'id' => $id
+	);
 
 	/*
 	 * Find our new post and save the ID OLD WAY
@@ -505,7 +520,7 @@ function redditautomation_submit_link($title, $link, $subreddit = null) {
 			'id' => $id
 	);
 
-	/* Find our new post and save the ID */
+	/* Find our new post and save the ID
 	sleep ( 2 );
 	$l = $reddit->getListing ( $subreddit, 5 );
 	if (variable_get ( 'redditautomation_debugmode' )) {
@@ -515,7 +530,7 @@ function redditautomation_submit_link($title, $link, $subreddit = null) {
 		_redditautomationlog ( "Link submitted: " . print_r ( $l, true ) );
 	}
 
-	return _redditautomation_search ( $l->data->children, $title );
+	return _redditautomation_search ( $l->data->children, $title );*/
 }
 
 /**
@@ -602,7 +617,7 @@ function redditautomation_fetch_posts($sr = null, $string = null, $count = 25, $
 	// Fetch posts.
 	$j = $reddit->getListing ( $sr, $count );
 
-	dpm ( $j, 'Raw dump of fetch' );
+	dpm ( $j, 'Raw dump of posts fetch' );
 
 	// Convert the response (object) into something parsable.. We want the Comment IDs.
 	foreach ( $j->data->children as $c ) {
@@ -623,7 +638,9 @@ function redditautomation_fetch_posts($sr = null, $string = null, $count = 25, $
 			'id_list' => $comments
 	);
 }
-
+function redditautomation_fetch_posts_rule_wrapper($sr = null, $string = null, $count = 25) {
+	return redditautomation_fetch_posts ( $sr, $string, $count );
+}
 /**
  * ID only array result, otherwise same as fetch_posts.
  *
@@ -632,7 +649,7 @@ function redditautomation_fetch_posts($sr = null, $string = null, $count = 25, $
  * @param number $count
  * @return Ambigous <multitype:, multitype:NULL >
  */
-function redditautomation_fetch_post_ids($sr = null, $string = null, $count = 25) {
+function redditautomation_fetch_post_ids_rule_wrapper($sr = null, $string = null, $count = 25) {
 	return redditautomation_fetch_posts ( $sr, $string, $count, TRUE );
 }
 
@@ -663,7 +680,9 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 		$sr = variable_get ( 'redditautomation_default_subreddit', 'reddit' );
 	}
 
-	_redditautomationlog ( "fetching comments for $post_id, looking for \"$string\" $depth deep." );
+	_redditautomationlog ( "fetching comments for $post_id in $sr, looking for \"$string\" $depth deep." );
+
+	return; // test
 
 	$post_id = _redditautomation_clean_id ( $post_id );
 	$reddit = _redditautomation_get_reddit ();
@@ -708,16 +727,19 @@ function redditautomation_fetch_comments($post_id, $string = null, $depth = 1, $
 			'id_list' => $comments
 	);
 }
-function redditautomation_fetch_comment_ids($post_id, $string = null, $depth = 1, $sr = null) {
-	return redditautomation_fetch_comments ( $post_id, $string, $depth, $sr, TRUE );
+function redditautomation_fetch_comments_rule_wrapper($post_id, $string = null, $depth = 1) {
+	return redditautomation_fetch_comments ( $post_id, $string, $depth );
+}
+function redditautomation_fetch_comment_ids_rule_wrapper($post_id, $string = null, $depth = 1) {
+	return redditautomation_fetch_comments ( $post_id, $string, $depth, $sr = null, TRUE );
 }
 /**
- * Utility function, converts a RedditComment, into an array.
+ * Utility function, converts a RedditComment, into an EntityMetadataWrapper.
  *
  * @param stdClass $c
  * @param boolean $include_raw
  *        	(Whether to include the whole original as 'raw')
- * @return array
+ * @return EntityMetadataWrapper
  */
 function _redditautomation_parse_comment($c, $include_raw = false) {
 	$return = array (
@@ -746,7 +768,10 @@ function _redditautomation_parse_comment($c, $include_raw = false) {
 	if ($include_raw) {
 		$return ['raw'] = $c; // Do we need this?
 	}
-	return $return;
+
+	$entity = entity_metadata_create_object($return, 'RulesObject');// ??
+
+	return $entity;
 }
 
 /**
